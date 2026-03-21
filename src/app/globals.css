@@ -1,0 +1,602 @@
+
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: oklch(var(--background));
+  --color-foreground: oklch(var(--foreground));
+  --color-card: oklch(var(--card));
+  --color-card-foreground: oklch(var(--card-foreground));
+  --color-popover: oklch(var(--popover));
+  --color-popover-foreground: oklch(var(--popover-foreground));
+  --color-primary: oklch(var(--primary));
+  --color-primary-foreground: oklch(var(--primary-foreground));
+  --color-secondary: oklch(var(--secondary));
+  --color-secondary-foreground: oklch(var(--secondary-foreground));
+  --color-muted: oklch(var(--muted));
+  --color-muted-foreground: oklch(var(--muted-foreground));
+  --color-accent: oklch(var(--accent));
+  --color-accent-foreground: oklch(var(--accent-foreground));
+  --color-destructive: oklch(var(--destructive));
+  --color-destructive-foreground: oklch(var(--destructive-foreground));
+  --color-border: oklch(var(--border));
+  --color-input: oklch(var(--input));
+  --color-ring: oklch(var(--ring));
+  --color-chart-1: oklch(var(--chart-1));
+  --color-chart-2: oklch(var(--chart-2));
+  --color-chart-3: oklch(var(--chart-3));
+  --color-chart-4: oklch(var(--chart-4));
+  --color-chart-5: oklch(var(--chart-5));
+  --color-sidebar-background: oklch(var(--sidebar-background));
+  --color-sidebar-foreground: oklch(var(--sidebar-foreground));
+  --color-sidebar-primary: oklch(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: oklch(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: oklch(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: oklch(var(--sidebar-accent-foreground));
+  --color-sidebar-border: oklch(var(--sidebar-border));
+  --color-sidebar-ring: oklch(var(--sidebar-ring));
+
+  --radius: 0.5rem;
+}
+
+:root {
+  --background: 98% 0.002 286;
+  --foreground: 10% 0.005 286;
+  --card: 100% 0 0;
+  --card-foreground: 10% 0.005 286;
+  --popover: 100% 0 0;
+  --popover-foreground: 10% 0.005 286;
+  --primary: 58.6% 0.207 264.4;
+  --primary-foreground: 100% 0 0;
+  --secondary: 96% 0.005 286;
+  --secondary-foreground: 10% 0.005 286;
+  --muted: 96% 0.005 286;
+  --muted-foreground: 45% 0.010 286;
+  --accent: 96% 0.005 286;
+  --accent-foreground: 10% 0.005 286;
+  --destructive: 57.7% 0.243 29.2;
+  --destructive-foreground: 100% 0 0;
+  --border: 90% 0.005 286;
+  --input: 90% 0.005 286;
+  --ring: 58.6% 0.207 264.4;
+  --chart-1: 70.6% 0.184 60.7;
+  --chart-2: 72.3% 0.191 142.1;
+  --chart-3: 71.8% 0.186 60.1;
+  --chart-4: 66.9% 0.182 254.6;
+  --chart-5: 64.8% 0.15 285.8;
+  --sidebar-background: 100% 0 0;
+  --sidebar-foreground: 10% 0.005 286;
+  --sidebar-primary: 58.6% 0.207 264.4;
+  --sidebar-primary-foreground: 100% 0 0;
+  --sidebar-accent: 96% 0.005 286;
+  --sidebar-accent-foreground: 10% 0.005 286;
+  --sidebar-border: 90% 0.005 286;
+  --sidebar-ring: 58.6% 0.207 264.4;
+}
+
+.dark {
+  --background: 12% 0.05 264;
+  --foreground: 100% 0 0;
+  --card: 15% 0.05 264;
+  --card-foreground: 100% 0 0;
+  --popover: 15% 0.05 264;
+  --popover-foreground: 100% 0 0;
+  --primary: 58.6% 0.207 264.4;
+  --primary-foreground: 100% 0 0;
+  --secondary: 20% 0.05 264;
+  --secondary-foreground: 100% 0 0;
+  --muted: 20% 0.05 264;
+  --muted-foreground: 60% 0.010 286.3;
+  --accent: 20% 0.05 264;
+  --accent-foreground: 100% 0 0;
+  --destructive: 57.7% 0.243 29.2;
+  --destructive-foreground: 100% 0 0;
+  --border: 20% 0.05 264;
+  --input: 20% 0.05 264;
+  --ring: 58.6% 0.207 264.4;
+  --chart-1: 70.6% 0.184 60.7;
+  --chart-2: 72.3% 0.191 142.1;
+  --chart-3: 71.8% 0.186 60.1;
+  --chart-4: 66.9% 0.182 254.6;
+  --chart-5: 64.8% 0.15 285.8;
+  --sidebar-background: 12% 0.05 264;
+  --sidebar-foreground: 100% 0 0;
+  --sidebar-primary: 58.6% 0.207 264.4;
+  --sidebar-primary-foreground: 100% 0 0;
+  --sidebar-accent: 20% 0.05 264;
+  --sidebar-accent-foreground: 100% 0 0;
+  --sidebar-border: 20% 0.05 264;
+  --sidebar-ring: 58.6% 0.207 264.4;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  html {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  button {
+    font-weight: 700;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  button:not(.create-character-btn):not(.neon-start-btn):hover {
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%) !important;
+    color: white !important;
+    opacity: 1 !important;
+  }
+
+  button:active {
+    opacity: 1 !important;
+    transform: scale(0.98);
+  }
+
+  button span,
+  button {
+    color: inherit;
+    font-weight: 700;
+  }
+
+  .ui-button:hover,
+  [role="button"]:hover {
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%) !important;
+    color: white !important;
+  }
+}
+
+/* ── Banner Layout ─────────────────────────────────────────────────────────────
+   STRATEGY: "clip-container + object-fit:contain" approach.
+
+   The image's natural aspect ratio is approximately 2.667:1 (wide landscape).
+
+   MOBILE (< 768px):
+     • .banner-outer has no fixed height — it grows to fit the image naturally.
+     • .banner-inner is position:relative with width:100%.
+     • .banner-img is display:block, width:100%, height:auto — full natural size.
+     • Text overlay is absolute over the full image area.
+     • Zero transforms, zero clipping, zero distortion.
+
+   TABLET & DESKTOP (≥ 768px):
+     • We want the banner to occupy exactly 40% of its natural height (60% reduction).
+     • .banner-outer clips to that reduced height via overflow:hidden.
+     • The clip height = 40% of natural height.
+       Natural height = width / 2.667  →  clip height = width / 2.667 × 0.4 = width / 6.667
+       As a padding-top percentage: 100% / 6.667 ≈ 15%.
+     • .banner-inner fills the clip area (position:absolute, inset:0).
+     • .banner-img uses object-fit:contain + width:100% + height:100% so the
+       ENTIRE image is always visible inside the clip window — no cropping,
+       no distortion, no stretching. The image simply appears smaller.
+     • Text overlay is absolute over the same clip area — text and button
+       are NOT scaled, so they remain fully readable and undistorted.
+     • No negative margins, no transform hacks, no dead space.
+
+   Result:
+     ✅ Full image always visible — zero cropping
+     ✅ Image aspect ratio preserved — zero distortion
+     ✅ Text and button at natural size — zero compression
+     ✅ No black gaps or extra empty space below
+     ✅ Mobile layout completely unchanged
+────────────────────────────────────────────────────────────────────────────── */
+
+/* MOBILE: natural full-size banner */
+.banner-outer {
+  width: 100%;
+  position: relative;
+}
+
+.banner-inner {
+  position: relative;
+  width: 100%;
+}
+
+.banner-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* TABLET & DESKTOP: clip to 40% of natural height, full image visible via object-fit:contain */
+@media (min-width: 768px) {
+  .banner-outer {
+    /* padding-top creates the clipped height = 40% of natural image height.
+       Natural ratio 2.667:1 → natural height = 37.5% of width.
+       40% of that = 15% of width → padding-top: 15% */
+    padding-top: 15%;
+    height: 0;
+    overflow: hidden;
+    position: relative;
+    border-radius: 1rem;
+  }
+
+  .banner-inner {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+  }
+}
+
+/* ── Banner Text Overlay ── */
+.banner-text-area {
+  background: linear-gradient(
+    to right,
+    rgba(5, 2, 20, 0.72) 0%,
+    rgba(5, 2, 20, 0.45) 45%,
+    transparent 70%
+  );
+}
+
+.banner-title {
+  font-size: clamp(1.1rem, 3.5vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: #e0f7ff;
+  text-shadow:
+    0 0 18px rgba(0, 230, 255, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.7);
+  letter-spacing: -0.01em;
+}
+
+.banner-subtitle {
+  font-size: clamp(0.65rem, 1.6vw, 1.05rem);
+  font-weight: 400;
+  color: rgba(200, 240, 255, 0.88);
+  line-height: 1.5;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Neon Start Button ── */
+.neon-start-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.4rem, 1.2vw, 0.65rem) clamp(1rem, 3vw, 2rem);
+  font-size: clamp(0.7rem, 1.4vw, 0.95rem);
+  font-weight: 700;
+  color: #c8f8ff;
+  background: rgba(5, 10, 30, 0.82);
+  border: 2px solid #00e5ff;
+  border-radius: 9999px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.04em;
+  box-shadow:
+    0 0 10px rgba(0, 229, 255, 0.55),
+    0 0 22px rgba(0, 229, 255, 0.25),
+    inset 0 0 8px rgba(0, 229, 255, 0.08);
+  transition: box-shadow 0.3s ease, transform 0.2s ease, background 0.3s ease;
+  white-space: nowrap;
+}
+
+.neon-start-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 229, 255, 0.12) 0%,
+    rgba(0, 180, 255, 0.06) 100%
+  );
+  pointer-events: none;
+}
+
+.neon-start-btn:hover {
+  background: rgba(0, 20, 40, 0.9) !important;
+  color: #ffffff !important;
+  border-color: #00e5ff !important;
+  box-shadow:
+    0 0 18px rgba(0, 229, 255, 0.85),
+    0 0 40px rgba(0, 229, 255, 0.45),
+    0 0 70px rgba(0, 180, 255, 0.2),
+    inset 0 0 14px rgba(0, 229, 255, 0.15) !important;
+  opacity: 1 !important;
+}
+
+.neon-start-btn:active {
+  transform: scale(0.97) !important;
+  opacity: 1 !important;
+}
+
+/* ── Create Character Button ── */
+.create-character-btn {
+  position: relative;
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: white !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.5), 0 0 60px rgba(168, 85, 247, 0.4);
+  animation: pulse-glow 2.5s ease-in-out infinite;
+  transition: all 0.3s ease;
+  will-change: transform, box-shadow;
+  opacity: 1 !important;
+}
+
+.create-character-btn:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%) !important;
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.7), 0 0 80px rgba(168, 85, 247, 0.6);
+  transform: scale(1.05);
+  animation: none;
+  color: white !important;
+  opacity: 1 !important;
+}
+
+.create-character-btn:active {
+  transform: scale(0.98);
+  opacity: 1 !important;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.5), 0 0 60px rgba(168, 85, 247, 0.4);
+  }
+  25% {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(168, 85, 247, 0.2);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.7), 0 0 80px rgba(168, 85, 247, 0.6);
+  }
+  75% {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(168, 85, 247, 0.2);
+  }
+}
+
+@keyframes campaign-breathing {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.campaign-banner-breathing {
+  animation: campaign-breathing 4s ease-in-out infinite;
+}
+
+@keyframes discount-glow-flicker {
+  0%, 100% {
+    text-shadow: 
+      0 0 10px rgba(99, 102, 241, 0.4),
+      0 0 20px rgba(168, 85, 247, 0.3),
+      0 0 30px rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    text-shadow: 
+      0 0 15px rgba(99, 102, 241, 0.6),
+      0 0 30px rgba(168, 85, 247, 0.5),
+      0 0 45px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.campaign-discount-glow {
+  animation: discount-glow-flicker 3s ease-in-out infinite;
+  text-shadow: 
+    0 0 10px rgba(99, 102, 241, 0.4),
+    0 0 20px rgba(168, 85, 247, 0.3),
+    0 0 30px rgba(99, 102, 241, 0.2);
+}
+
+.premium-gradient-button {
+  position: relative;
+  background: #141414;
+  color: #ffffff;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  z-index: 1;
+  opacity: 1 !important;
+}
+
+.premium-gradient-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  padding: 2px;
+  background: linear-gradient(135deg, #4f46e5, #9333ea);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: -1;
+}
+
+.premium-gradient-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.premium-gradient-button:hover::after {
+  left: 100%;
+}
+
+.premium-gradient-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.4);
+  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%) !important;
+  color: white !important;
+  opacity: 1 !important;
+}
+
+.premium-gradient-button:active {
+  transform: translateY(-1px);
+  opacity: 1 !important;
+}
+
+.gradient-blue-purple {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+}
+
+.gradient-purple-navy {
+  background: linear-gradient(135deg, oklch(0.45 0.20 280) 0%, oklch(0.35 0.15 260) 100%);
+}
+
+.glow-blue-purple {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(168, 85, 247, 0.2);
+}
+
+.glow-blue-purple:hover {
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.5), 0 0 60px rgba(168, 85, 247, 0.3);
+}
+
+.transition-smooth {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-smooth-long {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.character-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.character-card:hover {
+  transform: scale(1.02);
+  z-index: 10;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4f46e5 0%, #9333ea 100%);
+  background-clip: padding-box;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 oklch(var(--background));
+}
+
+.character-card-image {
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 oklch(var(--background));
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: oklch(var(--background));
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #4f46e5 0%, #9333ea 100%);
+}
+
+@media (max-width: 1199px) {
+  button:not(.create-character-btn):not(.neon-start-btn):hover {
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%) !important;
+    color: white !important;
+    opacity: 1 !important;
+  }
+
+  .create-character-btn {
+    opacity: 1 !important;
+  }
+
+  .create-character-btn:hover {
+    opacity: 1 !important;
+  }
+}
+
+@media (max-width: 767px) {
+  button:not(.create-character-btn):not(.neon-start-btn):hover {
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%) !important;
+    color: white !important;
+    opacity: 1 !important;
+  }
+
+  .create-character-btn {
+    opacity: 1 !important;
+  }
+
+  .create-character-btn:hover {
+    opacity: 1 !important;
+  }
+
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button:not(.create-character-btn):not(.neon-start-btn):active {
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%) !important;
+    color: white !important;
+    opacity: 1 !important;
+  }
+
+  .create-character-btn:active {
+    opacity: 1 !important;
+  }
+}
