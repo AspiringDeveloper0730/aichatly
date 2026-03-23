@@ -46,7 +46,7 @@ export async function generateMetadata({
       imageUrl = `https:${imageUrl}`;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_STRIPE_URL || "https://aichatly.com";
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
     const characterUrl = `${baseUrl}/chat/${characterId}`;
 
     return {

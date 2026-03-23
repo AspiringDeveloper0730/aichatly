@@ -204,42 +204,12 @@ export function PackageDetailsSection() {
 
   const handleUpgradeClick = async () => {
     if (!upgradePackage) return;
-    setCheckoutError(null);
-    setCheckoutLoading(true);
-    try {
-      const amountCents =
-        (upgradePackage.discountPct ?? 0) > 0 && upgradePackage.discountedCents != null
-          ? upgradePackage.discountedCents
-          : upgradePackage.amountCents;
-
-      const response = await fetch("/next_api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          packageId: upgradePackage.id,
-          packageName: upgradePackage.name,
-          amountCents,
-          currency: upgradePackage.currency,
-          billingCycle: upgradePackage.billingCycle,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success || !data.url) {
-        throw new Error(data.error || "Failed to open payment page");
-      }
-
-      window.location.href = data.url;
-    } catch (err: any) {
-      console.error("[PackageDetailsSection] checkout error:", err);
-      setCheckoutError(
-        language === "tr"
-          ? "Ödeme sayfası açılamadı. Lütfen tekrar deneyin."
-          : "Payment page could not be opened. Please try again."
-      );
-      setCheckoutLoading(false);
-    }
+    setCheckoutError(
+      language === "tr"
+        ? "Satın alma/yükseltme şu anda kullanımdan kaldırıldı."
+        : "Purchasing/upgrading is currently disabled."
+    );
+    setCheckoutLoading(false);
   };
 
   if (loading) {
