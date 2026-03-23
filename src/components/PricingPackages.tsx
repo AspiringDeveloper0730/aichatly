@@ -22,6 +22,7 @@ interface DBPackage {
   features: { en: string[]; tr: string[] } | null;
   display_order: number;
   is_featured: boolean;
+  stripe_price_id: string | null;
 }
 
 function getIcon(quotaTier: string | null) {
@@ -336,7 +337,7 @@ export function PricingPackages() {
       const { data } = await supabase
         .from("packages")
         .select(
-          "id, name_en, name_tr, package_type, quota_tier, price_cents, original_price_cents, discounted_price_cents, discount_percentage, currency, features, display_order, is_featured"
+          "id, name_en, name_tr, package_type, quota_tier, price_cents, original_price_cents, discounted_price_cents, discount_percentage, currency, features, display_order, is_featured, stripe_price_id"
         )
         .eq("is_active", true)
         .order("display_order");
@@ -348,12 +349,44 @@ export function PricingPackages() {
   }, []);
 
   const handleCheckout = useCallback(async (pkg: DBPackage) => {
-    setErrorMsg(
-      language === "tr"
-        ? "Satın alma şu anda kullanımdan kaldırıldı."
-        : "Purchasing is currently disabled."
-    );
-    setLoadingId(null);
+    setErrorMsg(null);
+    setLoadingId(pkg.id);
+    try {
+      const amountCents =
+        (pkg.discount_percentage ?? 0) > 0 && pkg.discounted_price_cents != null
+          ? pkg.discounted_price_cents
+          : pkg.price_cents;
+
+      const response = await fetch("/next_api/lemonsqueezy/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          packageId: pkg.id,
+          packageName: language === "tr" ? pkg.name_tr : pkg.name_en,
+          amountCents,
+          currency: pkg.currency,
+          billingCycle: pkg.package_type,
+          variantId: pkg.stripe_price_id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success || !data.url) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      window.location.href = data.url;
+    } catch (err: any) {
+      console.error("[PricingPackages] checkout error:", err);
+      setErrorMsg(
+        err?.message ||
+          (language === "tr"
+            ? "Ödeme sayfası açılamadı. Lütfen tekrar deneyin."
+            : "Payment page could not be opened. Please try again.")
+      );
+      setLoadingId(null);
+    }
   }, [language]);
 
   const freePackages = packages.filter((p) => p.quota_tier === "free");

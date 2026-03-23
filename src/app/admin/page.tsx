@@ -9,6 +9,7 @@ import { UserManagementSection } from "@/components/admin/UserManagementSection"
 import { CharacterManagementSection } from "@/components/admin/CharacterManagementSection";
 import { PackageManagementSection } from "@/components/admin/PackageManagementSection";
 import { ReferralManagementSection } from "@/components/admin/ReferralManagementSection";
+import { PendingWithdrawalsSection } from "@/components/admin/PendingWithdrawalsSection";
 import { SiteContentManagementSection } from "@/components/admin/SiteContentManagementSection";
 import { SettingsManagementSection } from "@/components/admin/SettingsManagementSection";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,7 +17,15 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Shield } from "lucide-react";
 
-export type AdminSection = "users" | "characters" | "packages" | "referrals" | "content" | "settings" | null;
+export type AdminSection =
+  | "users"
+  | "characters"
+  | "packages"
+  | "referrals"
+  | "withdrawals"
+  | "content"
+  | "settings"
+  | null;
 
 export default function AdminPanelPage() {
   const { user, isAdmin, loading, roleLoading } = useAuth();
@@ -74,6 +83,7 @@ export default function AdminPanelPage() {
           {activeSection === "characters" && <CharacterManagementSection />}
           {activeSection === "packages" && <PackageManagementSection />}
           {activeSection === "referrals" && <ReferralManagementSection />}
+          {activeSection === "withdrawals" && <PendingWithdrawalsSection />}
           {activeSection === "content" && <SiteContentManagementSection />}
           {activeSection === "settings" && <SettingsManagementSection />}
         </div>

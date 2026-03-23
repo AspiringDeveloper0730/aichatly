@@ -299,9 +299,46 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
     setShowShareMenu(!showShareMenu);
   };
 
-  const handleSocialShare = (platform: "facebook" | "twitter" | "whatsapp" | "telegram") => {
-    // Use the current page URL which will include all the meta tags
-    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const handleSocialShare = async (platform: "facebook" | "twitter" | "whatsapp" | "telegram") => {
+    if (!user) {
+      toast.error(
+        language === "tr"
+          ? "Paylaşım ödülü için giriş yapmalısınız"
+          : "You must sign in for share rewards"
+      );
+      return;
+    }
+
+    const prepareRes = await fetch("/api/rewards/character-share", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "prepare",
+        userId: user.id,
+        platform,
+      }),
+    });
+
+    const prepareData = await prepareRes.json();
+    if (!prepareRes.ok || !prepareData?.success || !prepareData?.shareId) {
+      toast.error(
+        prepareData?.error ||
+          (language === "tr" ? "Paylaşım hazırlanamadı" : "Share could not be prepared")
+      );
+      return;
+    }
+
+    // Always build share URL from the public site base. Using current href can produce
+    // localhost/private URLs that are not reachable from social apps/devices.
+    const siteBase =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+    const urlObj = new URL(`/chat/${character.id}`, siteBase);
+    urlObj.searchParams.set("share_id", prepareData.shareId);
+    urlObj.searchParams.set("share_platform", platform);
+    const shareUrl = urlObj.toString();
     const shareTitle = `${character.name}${occupation ? ` - ${occupation}` : ""}`;
     const shareDescription = description || `Chat with ${character.name} on AiChatly`;
     const shareText = `${shareTitle}\n${shareDescription}`;
@@ -318,8 +355,8 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
         url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
         break;
       case "whatsapp":
-        // WhatsApp uses Open Graph meta tags for preview
-        url = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`;
+        // Put URL first so chat apps detect it as a clickable link more reliably.
+        url = `https://wa.me/?text=${encodeURIComponent(`${shareUrl}\n${shareText}`)}`;
         break;
       case "telegram":
         // Telegram uses Open Graph meta tags for preview
@@ -331,7 +368,9 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
       window.open(url, "_blank", "width=600,height=400");
       setShowShareMenu(false);
       toast.success(
-        language === "tr" ? "Paylaşım penceresi açıldı" : "Share window opened"
+        language === "tr"
+          ? "Paylaşım penceresi açıldı. Linke tıklanınca +5 hak kazanırsınız."
+          : "Share window opened. You will get +5 when the shared link is clicked."
       );
     }
   };

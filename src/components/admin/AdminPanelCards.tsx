@@ -3,7 +3,7 @@
 
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { Users, Sparkles, Package, TrendingUp, FileText, Settings } from "lucide-react";
+import { Users, Sparkles, Package, TrendingUp, FileText, Settings, HandCoins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdminSection } from "@/app/admin/page";
 
@@ -39,6 +39,12 @@ export function AdminPanelCards({ activeSection, onSectionChange }: AdminPanelCa
       gradient: "from-[#10b981] to-[#3b82f6]",
     },
     {
+      id: "withdrawals" as const,
+      icon: HandCoins,
+      title: "Pending Withdrawals",
+      gradient: "from-[#14b8a6] to-[#0ea5e9]",
+    },
+    {
       id: "content" as const,
       icon: FileText,
       title: "Site Content Management",
@@ -53,7 +59,7 @@ export function AdminPanelCards({ activeSection, onSectionChange }: AdminPanelCa
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
       {cards.map((card) => {
         const Icon = card.icon;
         const isActive = activeSection === card.id;

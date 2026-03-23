@@ -11,6 +11,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile, useIsTabletOrMobile } from "@/hooks/use-mobile";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { preloadRewardedAdSdk, showRewardedAd } from "@/lib/rewarded-ad";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Character {
   id: string;
@@ -81,6 +91,11 @@ export default function ChatPage() {
   const [showLeftPanel, setShowLeftPanel] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [welcomeMessageSent, setWelcomeMessageSent] = useState(false);
+  const [showLimitPopup, setShowLimitPopup] = useState(false);
+  const [videoRemaining, setVideoRemaining] = useState(0);
+  const [shareRemaining, setShareRemaining] = useState(0);
+  const [claimingVideoReward, setClaimingVideoReward] = useState(false);
+  const rewardedAdUnitPath = process.env.NEXT_PUBLIC_GAM_REWARDED_AD_UNIT_PATH || "";
 
   useEffect(() => {
     setIsGuest(!user);
@@ -92,6 +107,49 @@ export default function ChatPage() {
       loadGuestConversations();
     }
   }, [user, characterId]);
+
+  useEffect(() => {
+    const verifyShareClick = async () => {
+      const url = new URL(window.location.href);
+      const shareId = url.searchParams.get("share_id") || url.searchParams.get("share_ref");
+      if (!shareId) return;
+
+      const consumeKey = `share_ref_consumed_${shareId}`;
+      if (sessionStorage.getItem(consumeKey)) return;
+
+      try {
+        const res = await fetch("/api/rewards/character-share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "verify_click",
+            shareId,
+          }),
+        });
+        const data = await res.json();
+        if (data?.success) {
+          sessionStorage.setItem(consumeKey, "1");
+        }
+      } catch (error) {
+        console.error("Error verifying share click:", error);
+      } finally {
+        // Keep URL clean after tracking.
+        url.searchParams.delete("share_id");
+        url.searchParams.delete("share_ref");
+        url.searchParams.delete("share_platform");
+        window.history.replaceState({}, "", url.toString());
+      }
+    };
+
+    void verifyShareClick();
+  }, []);
+
+  useEffect(() => {
+    if (!rewardedAdUnitPath) return;
+    preloadRewardedAdSdk().catch(() => {
+      // Fail silently; we'll show user-facing message when they click "Watch Video".
+    });
+  }, [rewardedAdUnitPath]);
 
   // Listen for live character updates from edit panel
   useEffect(() => {
@@ -164,6 +222,35 @@ export default function ChatPage() {
       sendWelcomeMessage();
     }
   }, [character, currentConversationId, messages.length, welcomeMessageSent]);
+
+  const loadRewardRemainingCounts = async () => {
+    if (!user) return;
+
+    try {
+      const [videoRes, shareRes] = await Promise.all([
+        fetch("/api/rewards/video-watch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "status", userId: user.id }),
+        }),
+        fetch("/api/rewards/character-share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "status", userId: user.id }),
+        }),
+      ]);
+
+      const videoData = await videoRes.json();
+      const shareData = await shareRes.json();
+
+      setVideoRemaining(Math.max(0, Number(videoData?.remainingCount ?? 0)));
+      setShareRemaining(Math.max(0, Number(shareData?.remainingCount ?? 0)));
+    } catch (error) {
+      console.error("Error loading reward remaining counts:", error);
+      setVideoRemaining(0);
+      setShareRemaining(0);
+    }
+  };
 
   const loadMessageCount = async () => {
     if (!currentConversationId || !user) return;
@@ -497,110 +584,108 @@ export default function ChatPage() {
     if (!currentConversationId) return;
 
     if (user) {
-      const userMessage = {
-        conversation_id: currentConversationId,
-        sender_type: "user" as const,
-        content,
-      };
+      // Build messages array from existing history without saving the new user message yet.
+      const recentMessages = messages.slice(-10);
+      const messagesForAPI = recentMessages.map((msg) => ({
+        role: msg.sender_type === "user" ? ("user" as const) : ("assistant" as const),
+        content: msg.content,
+      }));
+      messagesForAPI.push({ role: "user" as const, content });
 
-      const { data: newMessage } = await supabase
-        .from("messages")
-        .insert(userMessage)
-        .select()
-        .maybeSingle();
+      // First, call AI API (this will also decrement quota server-side).
+      try {
+        const response = await fetch("/api/chat/completion", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: messagesForAPI,
+            characterId,
+            userId: user.id,
+          }),
+        });
 
-      if (newMessage) {
-        setMessages((prev) => [...prev, newMessage]);
+        if (!response.ok) {
+          let message = "Failed to get AI response";
+          try {
+            const errorBody = await response.json();
+            if (errorBody?.error) {
+              message = errorBody.error;
+            }
+          } catch {
+            // ignore
+          }
+          const isQuotaExceeded = message.toLowerCase().includes("daily free message limit reached");
+          if (isQuotaExceeded) {
+            // Quota exceeded: do NOT save the user message, open the popup, and return.
+            await loadRewardRemainingCounts();
+            setShowLimitPopup(true);
+            return;
+          }
+          throw new Error(message);
+        }
 
+        const data = await response.json();
+        const aiContent = data.content || "I'm sorry, I couldn't generate a response.";
+
+        // Now persist both the user message and the AI reply since quota was available.
+        const userMessage = {
+          conversation_id: currentConversationId,
+          sender_type: "user" as const,
+          content,
+        };
+        const { data: savedUserMessage } = await supabase
+          .from("messages")
+          .insert(userMessage)
+          .select()
+          .maybeSingle();
+
+        if (savedUserMessage) {
+          setMessages((prev) => [...prev, savedUserMessage]);
+        }
+
+        const aiResponse = {
+          conversation_id: currentConversationId,
+          sender_type: "character" as const,
+          content: aiContent,
+        };
+
+        const { data: aiMessage } = await supabase
+          .from("messages")
+          .insert(aiResponse)
+          .select()
+          .maybeSingle();
+
+        if (aiMessage) {
+          setMessages((prev) => [...prev, aiMessage]);
+        }
+
+        // Update conversation message count (+2 for user + ai)
         const { data: conversation } = await supabase
           .from("conversations")
           .select("message_count")
           .eq("id", currentConversationId)
           .maybeSingle();
-
-        const newCount = (conversation?.message_count || 0) + 1;
-
+        const newCount = (conversation?.message_count || 0) + 2;
         await supabase
           .from("conversations")
           .update({ message_count: newCount, last_message_at: new Date().toISOString() })
           .eq("id", currentConversationId);
-
         setMessageCount(newCount);
-
         window.dispatchEvent(
           new CustomEvent("messageCountUpdated", { detail: { characterId, count: newCount } })
         );
-
-        // Call AI API to generate response
-        try {
-          // Build messages array from conversation history (last 10 messages for context)
-          const recentMessages = messages.slice(-10);
-          const messagesForAPI = recentMessages.map((msg) => ({
-            role: msg.sender_type === "user" ? ("user" as const) : ("assistant" as const),
-            content: msg.content,
-          }));
-
-          // Add current user message
-          messagesForAPI.push({
-            role: "user" as const,
-            content,
-          });
-
-          const response = await fetch("/api/chat/completion", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              messages: messagesForAPI,
-              characterId,
-              userId: user.id,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error("Failed to get AI response");
-          }
-
-          const data = await response.json();
-          const aiContent = data.content || "I'm sorry, I couldn't generate a response.";
-
-          const aiResponse = {
-            conversation_id: currentConversationId,
-            sender_type: "character" as const,
-            content: aiContent,
-          };
-
-          const { data: aiMessage } = await supabase
-            .from("messages")
-            .insert(aiResponse)
-            .select()
-            .maybeSingle();
-
-          if (aiMessage) {
-            setMessages((prev) => [...prev, aiMessage]);
-          }
-        } catch (error) {
-          console.error("Error generating AI response:", error);
-          toast.error("Failed to get AI response. Please try again.");
-          
-          // Fallback to placeholder response
-          const aiResponse = {
-            conversation_id: currentConversationId,
-            sender_type: "character" as const,
-            content: generateAIResponse(content),
-          };
-
-          const { data: aiMessage } = await supabase
-            .from("messages")
-            .insert(aiResponse)
-            .select()
-            .maybeSingle();
-
-          if (aiMessage) {
-            setMessages((prev) => [...prev, aiMessage]);
-          }
+      } catch (error) {
+        console.error("Error generating AI response:", error);
+        const errMessage = error instanceof Error ? error.message : "Failed to get AI response";
+        const isQuotaExceeded = errMessage.toLowerCase().includes("daily free message limit reached");
+        if (isQuotaExceeded) {
+          await loadRewardRemainingCounts();
+          setShowLimitPopup(true);
+          return;
         }
+        toast.error("Failed to get AI response. Please try again.");
       }
     } else {
       const userMessage: Message = {
@@ -665,7 +750,22 @@ export default function ChatPage() {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to get AI response");
+          let message = "Failed to get AI response";
+          try {
+            const errorBody = await response.json();
+            if (errorBody?.error) {
+              message = errorBody.error;
+            }
+          } catch {
+            // Ignore parse errors and use fallback message
+          }
+          const isQuotaExceeded = message.toLowerCase().includes("daily free message limit reached");
+          if (isQuotaExceeded) {
+            await loadRewardRemainingCounts();
+            setShowLimitPopup(true);
+            return;
+          }
+          throw new Error(message);
         }
 
         const data = await response.json();
@@ -683,6 +783,13 @@ export default function ChatPage() {
         setMessages((prev) => [...prev, aiMessage]);
       } catch (error) {
         console.error("Error generating AI response:", error);
+        const errMessage = error instanceof Error ? error.message : "Failed to get AI response";
+        const isQuotaExceeded = errMessage.toLowerCase().includes("daily free message limit reached");
+        if (isQuotaExceeded) {
+          await loadRewardRemainingCounts();
+          setShowLimitPopup(true);
+          return;
+        }
         // Fallback to placeholder
         const aiMessage: Message = {
           id: `guest_msg_${Date.now()}_ai`,
@@ -726,7 +833,63 @@ export default function ChatPage() {
     );
   }
 
+  const handleWatchVideoReward = async () => {
+    if (!user) return;
+    if (!rewardedAdUnitPath) {
+      toast.error("Rewarded ad is not configured yet.");
+      return;
+    }
+
+    setClaimingVideoReward(true);
+    try {
+      const adResult = await showRewardedAd(rewardedAdUnitPath);
+      if (!adResult.success) {
+        if (adResult.status === "closed_without_reward") {
+          toast.error("Please watch the full video to earn reward.");
+        } else if (adResult.status === "not_available") {
+          toast.error("No ad is available right now. Please try again shortly.");
+        } else if (adResult.status === "timeout") {
+          toast.error("Ad loading timed out. Please try again.");
+        } else {
+          toast.error("Rewarded ads are not supported on this device/browser.");
+        }
+        return;
+      }
+
+      const response = await fetch("/api/rewards/video-watch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "claim", userId: user.id }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        toast.error(data?.error || "Failed to claim video reward");
+        return;
+      }
+
+      toast.success("Video reward claimed: +15 messages");
+      setShowLimitPopup(false);
+    } catch (error) {
+      console.error("Error claiming video reward:", error);
+      toast.error("Failed to claim video reward");
+    } finally {
+      setClaimingVideoReward(false);
+      await loadRewardRemainingCounts();
+    }
+  };
+
+  const handleShareFromPopup = () => {
+    setShowLimitPopup(false);
+    setShowRightPanel(true);
+  };
+
+  const handleUpgradeFromPopup = () => {
+    setShowLimitPopup(false);
+    router.push("/pricing");
+  };
+
   return (
+    <>
     <div className="h-screen w-full bg-[#0f0f0f] flex overflow-hidden">
       {/* LEFT PANEL */}
       {!isTabletOrMobile && (
@@ -795,5 +958,43 @@ export default function ChatPage() {
         </div>
       )}
     </div>
+    <Dialog open={showLimitPopup} onOpenChange={setShowLimitPopup}>
+      <DialogContent className="bg-[#1a1a1a] border-white/[0.08] text-white">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold">Message Limit Reached</DialogTitle>
+          <DialogDescription className="text-[#cccccc] whitespace-pre-line">
+            {`Here are your options:
+• Watch a 30-second video -> Earn +15 messages! (${videoRemaining} videos remaining today)
+• Share characters on social media -> Earn +5 messages! (${shareRemaining} shares remaining today)
+• Or upgrade to Premium for unlimited messages and advanced memory!`}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex gap-3 mt-4">
+          <Button
+            onClick={handleWatchVideoReward}
+            disabled={claimingVideoReward || videoRemaining <= 0}
+            className="flex-1 bg-gradient-to-r from-[#6366f1] to-[#a855f7] text-white"
+          >
+            {claimingVideoReward ? "Loading..." : "Watch Video"}
+          </Button>
+          <Button
+            onClick={handleShareFromPopup}
+            disabled={shareRemaining <= 0}
+            variant="outline"
+            className="flex-1 border-white/[0.08] text-white hover:bg-white/[0.05]"
+          >
+            Share
+          </Button>
+          <Button
+            onClick={handleUpgradeFromPopup}
+            variant="outline"
+            className="flex-1 border-white/[0.08] text-white hover:bg-white/[0.05]"
+          >
+            Upgrade to Premium
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

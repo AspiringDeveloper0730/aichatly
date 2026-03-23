@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { Session, User } from "@supabase/supabase-js";
 import { getUserAdminStatus } from "@/lib/admin-utils";
 
 interface Profile {
@@ -76,38 +76,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRoleLoading(false);
       });
 
-    // Listen for auth state changes — always reset roleLoading in finally block
-    // to guarantee the login redirect condition is never permanently blocked.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // If the component has unmounted, reset loading and bail out immediately
-      // so no stale state updates occur.
+    const handleAuthStateChange = async (event: string, session: Session | null) => {
       if (!alive) {
         setRoleLoading(false);
         return;
       }
 
-      setRoleLoading(true);
-      setUser(session?.user ?? null);
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
 
+      if (!nextUser) {
+        setProfile(null);
+        setIsAdmin(false);
+        setRoleLoading(false);
+        return;
+      }
+
+      // Token refresh events can be frequent; avoid re-querying profile/admin
+      // to prevent unnecessary Supabase traffic and callback contention.
+      if (event === "TOKEN_REFRESHED") {
+        setRoleLoading(false);
+        return;
+      }
+
+      setRoleLoading(true);
       try {
-        if (session?.user) {
-          await Promise.all([
-            fetchProfile(session.user.id),
-            checkAdminStatus(session.user.id),
-          ]);
-        } else {
-          setProfile(null);
-          setIsAdmin(false);
-        }
+        await Promise.all([
+          fetchProfile(nextUser.id),
+          checkAdminStatus(nextUser.id),
+        ]);
       } catch (err) {
         console.error("[Auth] auth change fetch error:", err);
       } finally {
-        // Always runs — prevents roleLoading from staying true if any
-        // async operation hangs, throws, or the session becomes null.
         setRoleLoading(false);
       }
+    };
+
+    // Keep callback synchronous; schedule async work outside of Supabase callback
+    // to avoid potential deadlocks with nested Supabase calls.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      void handleAuthStateChange(event, session);
     });
 
     return () => {

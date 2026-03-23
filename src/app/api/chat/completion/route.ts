@@ -10,6 +10,42 @@ interface ChatCompletionRequest {
   userId?: string;
 }
 
+async function ensureFreeQuotaRow(userId: string): Promise<void> {
+  const today = new Date().toISOString().split("T")[0];
+
+  const { data: def, error: defError } = await supabaseAdmin
+    .from("package_quota_definitions")
+    .select("sms_limit, character_creation_limit, daily_file_upload_limit, total_file_upload_limit")
+    .eq("package_tier", "free")
+    .maybeSingle();
+
+  if (defError) {
+    throw new Error(`Failed to read free quota definition: ${defError.message}`);
+  }
+
+  const { error: insertError } = await supabaseAdmin.from("user_quotas").insert({
+    user_id: userId,
+    package_tier: "free",
+    sms_used: 0,
+    sms_limit: def?.sms_limit ?? 10,
+    character_creation_used: 0,
+    character_creation_limit: def?.character_creation_limit ?? 2,
+    file_upload_used_today: 0,
+    file_upload_daily_limit: def?.daily_file_upload_limit ?? 0,
+    file_upload_total_used: 0,
+    file_upload_total_limit: def?.total_file_upload_limit ?? 2,
+    period_start: new Date().toISOString(),
+    period_end: null,
+    daily_reset_at: today,
+    is_active: true,
+  });
+
+  // If another request created the row concurrently, ignore unique violation.
+  if (insertError && insertError.code !== "23505") {
+    throw new Error(`Failed to initialize free quota: ${insertError.message}`);
+  }
+}
+
 // Groq API client
 async function callGroqAPI(messages: Array<{ role: string; content: string }>) {
   const apiKey = process.env.FREE_USER_KEY;
@@ -140,7 +176,7 @@ export async function POST(request: NextRequest) {
       : "Do not use emojis.";
 
     systemPrompt += `\n\nBEHAVIOR SETTINGS:\n- ${lengthInstruction}\n- ${toneInstruction}\n- ${emojiInstruction}\n- ${rulesInstruction}`;
-    console.log(systemPrompt);
+    
     // Prepare messages with system prompt
     const messagesWithSystem = [
       { role: "system" as const, content: systemPrompt },
@@ -149,6 +185,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is premium
     let isPremium = false;
+    let isFreeTier = false;
     if (userId) {
       const { data: profile } = await supabaseAdmin
         .from("profiles")
@@ -157,6 +194,58 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       isPremium = profile?.is_premium ?? false;
+
+      const { data: quota } = await supabaseAdmin
+        .from("user_quotas")
+        .select("package_tier, sms_used, sms_limit")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      isFreeTier = (quota?.package_tier ?? "free") === "free";
+
+      if (!isPremium && isFreeTier) {
+        let quotaResult: any = null;
+        let quotaRpcError: any = null;
+
+        const firstAttempt = await supabaseAdmin.rpc("decrement_sms_quota", {
+          p_user_id: userId,
+        });
+        quotaResult = firstAttempt.data;
+        quotaRpcError = firstAttempt.error;
+
+        if (!quotaRpcError && quotaResult?.error === "no_active_quota") {
+          await ensureFreeQuotaRow(userId);
+          const secondAttempt = await supabaseAdmin.rpc("decrement_sms_quota", {
+            p_user_id: userId,
+          });
+          quotaResult = secondAttempt.data;
+          quotaRpcError = secondAttempt.error;
+        }
+
+        if (quotaRpcError) {
+          console.error("[Chat Completion API] decrement_sms_quota error:", quotaRpcError);
+          return NextResponse.json(
+            { error: "Failed to update message usage quota" },
+            { status: 500 }
+          );
+        }
+
+        if (!quotaResult?.success) {
+          if (quotaResult?.error === "sms_quota_exceeded") {
+            return NextResponse.json(
+              {
+                error: `Daily free message limit reached (${quotaResult?.used ?? 10}/${quotaResult?.limit ?? 10})`,
+              },
+              { status: 429 }
+            );
+          }
+          return NextResponse.json(
+            { error: "Failed to consume free message quota" },
+            { status: 500 }
+          );
+        }
+      }
     }
 
     // Call appropriate API based on membership
