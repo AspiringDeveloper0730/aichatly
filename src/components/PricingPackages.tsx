@@ -327,6 +327,7 @@ function RegularPackageCard({
 
 export function PricingPackages() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const [packages, setPackages] = useState<DBPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -350,6 +351,16 @@ export function PricingPackages() {
 
   const handleCheckout = useCallback(async (pkg: DBPackage) => {
     setErrorMsg(null);
+
+    if (!user?.email) {
+      setErrorMsg(
+        language === "tr"
+          ? "Paket satin almak icin once giris yapmalisiniz."
+          : "You need to be logged in before purchasing a package."
+      );
+      return;
+    }
+
     setLoadingId(pkg.id);
     try {
       const amountCents =
@@ -357,7 +368,7 @@ export function PricingPackages() {
           ? pkg.discounted_price_cents
           : pkg.price_cents;
 
-      const response = await fetch("/next_api/lemonsqueezy/checkout", {
+      const response = await fetch("/next_api/paypal/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -366,7 +377,7 @@ export function PricingPackages() {
           amountCents,
           currency: pkg.currency,
           billingCycle: pkg.package_type,
-          variantId: pkg.stripe_price_id,
+          userEmail: user.email,
         }),
       });
 
@@ -387,7 +398,7 @@ export function PricingPackages() {
       );
       setLoadingId(null);
     }
-  }, [language]);
+  }, [language, user]);
 
   const freePackages = packages.filter((p) => p.quota_tier === "free");
   const plusPackages = packages.filter(
