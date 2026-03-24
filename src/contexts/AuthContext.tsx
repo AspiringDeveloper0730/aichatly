@@ -39,9 +39,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [roleLoading, setRoleLoading] = useState(true);
 
   const getAppBaseUrl = () => {
+    if (typeof window !== "undefined") return window.location.origin.replace(/\/$/, "");
     const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
     if (fromEnv) return fromEnv;
-    if (typeof window !== "undefined") return window.location.origin;
     return "";
   };
 
