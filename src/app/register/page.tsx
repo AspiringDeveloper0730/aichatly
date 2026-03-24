@@ -20,6 +20,9 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const appBaseUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || window.location.origin;
+
   // Check if user is already logged in on mount
   useEffect(() => {
     let mounted = true;
@@ -89,7 +92,7 @@ export default function RegisterPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/panel`,
+          emailRedirectTo: `${appBaseUrl}/panel`,
           data: {
             full_name: username,
             email_confirmed: true,
@@ -161,7 +164,7 @@ export default function RegisterPage() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/popup-callback`,
+          redirectTo: `${appBaseUrl}/auth/popup-callback`,
           skipBrowserRedirect: true,
         },
       });

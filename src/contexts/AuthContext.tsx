@@ -38,6 +38,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
 
+  const appBaseUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || window.location.origin;
+
   useEffect(() => {
     let alive = true;
 
@@ -272,7 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/panel`,
+        emailRedirectTo: `${appBaseUrl}/panel`,
         data: {
           full_name: username,
           email_confirmed: true,
@@ -347,7 +350,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/popup-callback`,
+        redirectTo: `${appBaseUrl}/auth/popup-callback`,
         skipBrowserRedirect: true,
       },
     });
