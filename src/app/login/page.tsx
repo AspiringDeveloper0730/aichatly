@@ -103,10 +103,15 @@ export default function LoginPage() {
           if (pollTimer) clearInterval(pollTimer);
         };
 
+        const navigateMainToHome = () => {
+          router.replace("/");
+        };
+
         const onMessage = (messageEvent: MessageEvent) => {
           if (messageEvent.origin !== window.location.origin) return;
           if (messageEvent.data?.type === "google-oauth-success") {
             closePopupAndCleanup();
+            navigateMainToHome();
           }
         };
 
@@ -116,6 +121,7 @@ export default function LoginPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
               closePopupAndCleanup();
+              navigateMainToHome();
             }
           } catch {
             // ignore
@@ -127,7 +133,7 @@ export default function LoginPage() {
             closePopupAndCleanup();
             subscription.unsubscribe();
             toast.success("Google sign-in successful!");
-            // Let the useEffect handle redirect
+            navigateMainToHome();
           }
         });
 

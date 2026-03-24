@@ -177,10 +177,15 @@ export default function RegisterPage() {
           if (pollTimer) clearInterval(pollTimer);
         };
 
+        const navigateMainToHome = () => {
+          router.replace("/");
+        };
+
         const onMessage = (messageEvent: MessageEvent) => {
           if (messageEvent.origin !== window.location.origin) return;
           if (messageEvent.data?.type === "google-oauth-success") {
             closePopupAndCleanup();
+            navigateMainToHome();
           }
         };
 
@@ -190,6 +195,7 @@ export default function RegisterPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
               closePopupAndCleanup();
+              navigateMainToHome();
             }
           } catch {
             // ignore
@@ -201,10 +207,7 @@ export default function RegisterPage() {
             closePopupAndCleanup();
             subscription.unsubscribe();
             toast.success("Google sign-in successful!");
-            
-            // Check role and redirect
-            const isAdmin = await getUserAdminStatus(session.user.id);
-            router.replace(isAdmin ? "/admin" : "/panel");
+            navigateMainToHome();
           }
         });
 

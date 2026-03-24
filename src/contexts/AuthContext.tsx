@@ -366,10 +366,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (pollTimer) clearInterval(pollTimer);
       };
 
+      const navigateMainToHome = () => {
+        window.location.replace("/");
+      };
+
       const onMessage = (messageEvent: MessageEvent) => {
         if (messageEvent.origin !== window.location.origin) return;
         if (messageEvent.data?.type === "google-oauth-success") {
           closePopupAndCleanup();
+          navigateMainToHome();
         }
       };
 
@@ -379,6 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
             closePopupAndCleanup();
+            navigateMainToHome();
           }
         } catch {
           // ignore
@@ -390,6 +396,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === "SIGNED_IN" && session) {
           closePopupAndCleanup();
+          navigateMainToHome();
           subscription.unsubscribe();
         }
       });
