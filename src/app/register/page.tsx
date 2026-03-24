@@ -199,6 +199,24 @@ export default function RegisterPage() {
           didHandleAuth = true;
 
           if (isUrl && codeOrUrl) {
+            try {
+              const code = new URL(codeOrUrl).searchParams.get("code");
+              if (code) {
+                const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+                if (exchangeError) {
+                  console.error("[Register] OAuth code exchange error:", exchangeError);
+                } else {
+                  closePopupAndCleanup();
+                  toast.success("Google sign-in successful!");
+                  navigateMainToHome();
+                  return;
+                }
+              }
+            } catch (parseError) {
+              console.warn("[Register] OAuth callback URL parse warning:", parseError);
+            }
+
+            // Fallback to full-page callback navigation.
             window.location.replace(codeOrUrl);
             closePopupAndCleanup();
             return;

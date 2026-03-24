@@ -31,11 +31,21 @@ export default function PopupCallbackPage() {
       }
     }
 
-    // Main-window PKCE completion flow: this page may open in the main tab so
-    // Supabase can exchange code->session with the stored verifier. Redirect
-    // home after session appears (or timeout fallback).
+    // Main-window PKCE completion flow: explicitly exchange `code` for session
+    // before redirecting home, then fallback to a short session poll.
     let cancelled = false;
     const startedAt = Date.now();
+    const code = new URL(window.location.href).searchParams.get("code");
+
+    const exchangeCodeInMainWindow = async () => {
+      if (!code || (window.opener && !window.opener.closed)) return;
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        console.error("[OAuth Callback] code exchange error:", error);
+      }
+    };
+
+    void exchangeCodeInMainWindow();
 
     const interval = setInterval(async () => {
       if (cancelled || (window.opener && !window.opener.closed)) return;

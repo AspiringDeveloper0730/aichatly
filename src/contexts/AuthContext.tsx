@@ -389,6 +389,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         didHandleAuth = true;
 
         if (isUrl && codeOrUrl) {
+          try {
+            const code = new URL(codeOrUrl).searchParams.get("code");
+            if (code) {
+              const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+              if (exchangeError) {
+                console.error("[Auth] OAuth code exchange error:", exchangeError);
+              } else {
+                closePopupAndCleanup();
+                navigateMainToHome();
+                return;
+              }
+            }
+          } catch (parseError) {
+            console.warn("[Auth] OAuth callback URL parse warning:", parseError);
+          }
+
+          // Fallback to full-page callback navigation.
           window.location.replace(codeOrUrl);
           closePopupAndCleanup();
           return;
