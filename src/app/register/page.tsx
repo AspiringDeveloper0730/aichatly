@@ -20,8 +20,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const appBaseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || window.location.origin;
+  const getAppBaseUrl = () => {
+    const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+    if (fromEnv) return fromEnv;
+    if (typeof window !== "undefined") return window.location.origin;
+    return "";
+  };
 
   // Check if user is already logged in on mount
   useEffect(() => {
@@ -88,6 +92,7 @@ export default function RegisterPage() {
       const username = isEmailInput ? email.split("@")[0] : normalizedIdentifier;
 
       // Sign up with options to disable email confirmation
+      const appBaseUrl = getAppBaseUrl();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -161,6 +166,7 @@ export default function RegisterPage() {
 
   const handleGoogleSignIn = async () => {
     try {
+      const appBaseUrl = getAppBaseUrl();
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

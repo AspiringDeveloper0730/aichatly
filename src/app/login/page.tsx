@@ -21,8 +21,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const appBaseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || window.location.origin;
+  const getAppBaseUrl = () => {
+    const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+    if (fromEnv) return fromEnv;
+    if (typeof window !== "undefined") return window.location.origin;
+    return "";
+  };
 
   // Redirect based on AuthContext state when user is logged in
   useEffect(() => {
@@ -87,6 +91,7 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     try {
+      const appBaseUrl = getAppBaseUrl();
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

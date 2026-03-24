@@ -38,8 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
 
-  const appBaseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || window.location.origin;
+  const getAppBaseUrl = () => {
+    const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+    if (fromEnv) return fromEnv;
+    if (typeof window !== "undefined") return window.location.origin;
+    return "";
+  };
 
   useEffect(() => {
     let alive = true;
@@ -271,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const username = isEmailInput ? email.split("@")[0] : identifier;
 
+    const appBaseUrl = getAppBaseUrl();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -347,6 +352,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    const appBaseUrl = getAppBaseUrl();
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
