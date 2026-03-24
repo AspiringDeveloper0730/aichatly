@@ -87,7 +87,7 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/auth/popup-callback`,
           skipBrowserRedirect: true,
         },
       });
@@ -97,14 +97,34 @@ export default function LoginPage() {
       if (data?.url) {
         const popupWindow = window.open(data.url, "google-login", "width=500,height=600");
 
+        const closePopupAndCleanup = () => {
+          popupWindow?.close();
+          window.removeEventListener("message", onMessage);
+        };
+
+        const onMessage = (messageEvent: MessageEvent) => {
+          if (messageEvent.origin !== window.location.origin) return;
+          if (messageEvent.data?.type === "google-oauth-success") {
+            closePopupAndCleanup();
+          }
+        };
+
+        window.addEventListener("message", onMessage);
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (event === "SIGNED_IN" && session) {
-            popupWindow?.close();
+            closePopupAndCleanup();
             subscription.unsubscribe();
             toast.success("Google sign-in successful!");
             // Let the useEffect handle redirect
           }
         });
+
+        setTimeout(() => {
+          if (popupWindow && !popupWindow.closed) {
+            closePopupAndCleanup();
+          }
+        }, 60000);
       }
     } catch (error: any) {
       toast.error(error?.message || "Google sign-in failed");
