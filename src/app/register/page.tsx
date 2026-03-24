@@ -48,21 +48,42 @@ export default function RegisterPage() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
   };
 
+  const syncProfileAfterAuth = async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) return;
+
+      await fetch("/api/auth/sync-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+    } catch (error) {
+      console.warn("[Register] profile sync warning:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     setLoading(true);
 
     try {
-      const isEmailInput = isEmail(emailOrUsername);
-      
+      const normalizedIdentifier = emailOrUsername.trim();
+      const isEmailInput = isEmail(normalizedIdentifier);
+
       // If username is provided, we need to generate a temporary email
-      const email = isEmailInput 
-        ? emailOrUsername 
-        : `${emailOrUsername}@aichatly.temp`;
-      
-      const username = isEmailInput ? email.split("@")[0] : emailOrUsername;
-      
+      const email = isEmailInput
+        ? normalizedIdentifier.toLowerCase()
+        : `${normalizedIdentifier.toLowerCase()}@aichatly.temp`;
+
+      const username = isEmailInput ? email.split("@")[0] : normalizedIdentifier;
+
       // Sign up with options to disable email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -78,7 +99,10 @@ export default function RegisterPage() {
       
       if (error) {
         const errorMessage = error.message.toLowerCase();
-        if (errorMessage.includes('already registered') || errorMessage.includes('already exists')) {
+        if (
+          errorMessage.includes("already registered") ||
+          errorMessage.includes("already exists")
+        ) {
           throw new Error("This email is already registered. Please login instead.");
         }
         throw new Error(error.message || "Registration failed");
@@ -86,6 +110,7 @@ export default function RegisterPage() {
       
       // Check if user was created and session exists
       if (data.session) {
+        await syncProfileAfterAuth();
         toast.success("Registration successful!");
         const isAdmin = await getUserAdminStatus(data.user.id);
         router.replace(isAdmin ? "/admin" : "/panel");
@@ -95,16 +120,24 @@ export default function RegisterPage() {
       // If no session was created, attempt to login immediately
       if (data.user) {
         try {
-          const { data: loginData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
+          const { data: loginData, error: signInError } =
+            await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+
           if (signInError) {
+            const message = signInError.message.toLowerCase();
+            if (message.includes("email not confirmed")) {
+              throw new Error(
+                "Registration successful. Please confirm your email before logging in."
+              );
+            }
             throw new Error("Registration successful! Please try logging in.");
           }
-          
+
           if (loginData.user) {
+            await syncProfileAfterAuth();
             toast.success("Registration successful!");
             const isAdmin = await getUserAdminStatus(loginData.user.id);
             router.replace(isAdmin ? "/admin" : "/panel");

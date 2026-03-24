@@ -34,38 +34,43 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     setLoading(true);
 
     try {
-      const isEmailInput = isEmail(emailOrUsername);
-      let loginEmail = emailOrUsername;
-      
+      const normalizedIdentifier = emailOrUsername.trim();
+      const isEmailInput = isEmail(normalizedIdentifier);
+      let loginEmail = normalizedIdentifier;
+
       if (!isEmailInput) {
         // Username login: find email first
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("email")
-          .eq("full_name", emailOrUsername)
+          .ilike("full_name", normalizedIdentifier)
           .maybeSingle();
-        
+
         if (profileError || !profileData?.email) {
           throw new Error("Invalid email or password");
         }
-        
+
         loginEmail = profileData.email;
       }
-      
+
       // Login with email
       const { error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
+        email: loginEmail.toLowerCase(),
         password,
       });
-      
+
       if (error) {
+        const message = error.message.toLowerCase();
+        if (message.includes("email not confirmed")) {
+          throw new Error("Please confirm your email before logging in.");
+        }
         throw new Error("Invalid email or password");
       }
-      
+
       // Success - let the useEffect handle redirect
       toast.success("Login successful!");
     } catch (error: any) {

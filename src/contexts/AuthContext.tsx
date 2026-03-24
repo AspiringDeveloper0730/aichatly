@@ -101,6 +101,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setRoleLoading(true);
       try {
+        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+          await syncUserProfile(nextUser);
+        }
+
         await Promise.all([
           fetchProfile(nextUser.id),
           checkAdminStatus(nextUser.id),
@@ -157,27 +161,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const syncUserProfile = async (authUser: User) => {
+    let lastError: any = null;
+
+    // On some OAuth flows, auth state can arrive slightly before token persistence.
+    // Retry briefly so token-dependent server sync can succeed.
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+          continue;
+        }
+
+        const response = await fetch("/api/auth/sync-profile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) return;
+        lastError = await response.json().catch(() => ({
+          message: `Profile sync failed with status ${response.status}`,
+        }));
+      } catch (error) {
+        lastError = error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+    }
+
+    const structuredError =
+      lastError && typeof lastError === "object"
+        ? {
+            message: (lastError as any).message,
+            code: (lastError as any).code,
+            details: (lastError as any).details,
+            hint: (lastError as any).hint,
+          }
+        : { message: String(lastError) };
+
+    console.warn("[Auth] profile sync warning:", structuredError);
+  };
+
   const isEmail = (input: string): boolean => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
   };
 
+  const normalizeAuthInput = (value: string): string => value.trim();
+
   const signIn = async (emailOrUsername: string, password: string) => {
-    const isEmailInput = isEmail(emailOrUsername);
+    const identifier = normalizeAuthInput(emailOrUsername);
+    const isEmailInput = isEmail(identifier);
 
     if (isEmailInput) {
       const { error } = await supabase.auth.signInWithPassword({
-        email: emailOrUsername,
+        email: identifier.toLowerCase(),
         password,
       });
 
       if (error) {
+        const message = error.message.toLowerCase();
+        if (message.includes("email not confirmed")) {
+          throw new Error("Please confirm your email before logging in.");
+        }
         throw new Error("Invalid email or password");
       }
     } else {
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("email")
-        .eq("full_name", emailOrUsername)
+        .ilike("full_name", identifier)
         .maybeSingle();
 
       if (profileError || !profileData?.email) {
@@ -185,24 +244,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: profileData.email,
+        email: profileData.email.toLowerCase(),
         password,
       });
 
       if (error) {
+        const message = error.message.toLowerCase();
+        if (message.includes("email not confirmed")) {
+          throw new Error("Please confirm your email before logging in.");
+        }
         throw new Error("Invalid email or password");
       }
     }
   };
 
   const signUp = async (emailOrUsername: string, password: string) => {
-    const isEmailInput = isEmail(emailOrUsername);
+    const identifier = normalizeAuthInput(emailOrUsername);
+    const isEmailInput = isEmail(identifier);
 
     const email = isEmailInput
-      ? emailOrUsername
-      : `${emailOrUsername}@aichatly.temp`;
+      ? identifier.toLowerCase()
+      : `${identifier.toLowerCase()}@aichatly.temp`;
 
-    const username = isEmailInput ? email.split("@")[0] : emailOrUsername;
+    const username = isEmailInput ? email.split("@")[0] : identifier;
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -230,6 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (data.session) {
+      await syncUserProfile(data.session.user);
       return;
     }
 
@@ -241,7 +306,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (signInError) {
+          const message = signInError.message.toLowerCase();
+          if (message.includes("email not confirmed")) {
+            throw new Error(
+              "Registration successful. Please confirm your email before logging in."
+            );
+          }
           throw new Error("Registration successful! Please try logging in.");
+        }
+
+        if (loginData?.user) {
+          await syncUserProfile(loginData.user);
         }
 
         return;
