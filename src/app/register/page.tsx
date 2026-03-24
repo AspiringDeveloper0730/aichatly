@@ -112,7 +112,7 @@ export default function RegisterPage() {
       if (data.session) {
         await syncProfileAfterAuth();
         toast.success("Registration successful!");
-        const isAdmin = await getUserAdminStatus(data.user.id);
+        const isAdmin = await getUserAdminStatus(data.session.user.id);
         router.replace(isAdmin ? "/admin" : "/panel");
         return;
       }
@@ -170,6 +170,8 @@ export default function RegisterPage() {
 
       if (data?.url) {
         const popupWindow = window.open(data.url, "google-login", "width=500,height=600");
+        let didNavigate = false;
+        let didHandleAuth = false;
 
         const closePopupAndCleanup = () => {
           popupWindow?.close();
@@ -178,36 +180,65 @@ export default function RegisterPage() {
         };
 
         const navigateMainToHome = () => {
+          if (didNavigate) return;
+          didNavigate = true;
           router.replace("/");
         };
 
-        const onMessage = (messageEvent: MessageEvent) => {
-          if (messageEvent.origin !== window.location.origin) return;
-          if (messageEvent.data?.type === "google-oauth-success") {
+        const handleAuthCodeInMain = async (codeOrUrl?: string | null, isUrl?: boolean) => {
+          if (didHandleAuth) return;
+          didHandleAuth = true;
+
+          if (isUrl && codeOrUrl) {
+            window.location.replace(codeOrUrl);
             closePopupAndCleanup();
-            navigateMainToHome();
+            return;
+          }
+
+          if (codeOrUrl) {
+            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeOrUrl);
+            if (exchangeError) console.error("[Register] OAuth code exchange error:", exchangeError);
+          }
+
+          closePopupAndCleanup();
+          toast.success("Google sign-in successful!");
+          navigateMainToHome();
+        };
+
+        const onMessage = async (messageEvent: MessageEvent) => {
+          if (messageEvent.origin !== window.location.origin) return;
+          if (messageEvent.data?.type === "google-oauth-url") {
+            await handleAuthCodeInMain(messageEvent.data?.url ?? null, true);
+            return;
+          }
+          if (messageEvent.data?.type === "google-oauth-code") {
+            await handleAuthCodeInMain(messageEvent.data?.code ?? null, false);
+            return;
+          }
+          if (messageEvent.data?.type === "google-oauth-success") {
+            await handleAuthCodeInMain(null, false);
           }
         };
 
         window.addEventListener("message", onMessage);
         const pollTimer = setInterval(async () => {
           try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              closePopupAndCleanup();
-              navigateMainToHome();
+            if (didHandleAuth || !popupWindow || popupWindow.closed) return;
+
+            // Read popup URL only when it's back on same-origin.
+            const popupUrl = popupWindow.location.href;
+            if (popupUrl.startsWith(window.location.origin)) {
+              await handleAuthCodeInMain(popupUrl, true);
             }
           } catch {
-            // ignore
+            // Cross-origin while on Google/Supabase domain; ignore until callback returns.
           }
         }, 500);
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (event === "SIGNED_IN" && session) {
-            closePopupAndCleanup();
             subscription.unsubscribe();
-            toast.success("Google sign-in successful!");
-            navigateMainToHome();
+            await handleAuthCodeInMain(null);
           }
         });
 
