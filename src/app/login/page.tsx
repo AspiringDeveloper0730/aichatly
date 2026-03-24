@@ -100,6 +100,7 @@ export default function LoginPage() {
         const closePopupAndCleanup = () => {
           popupWindow?.close();
           window.removeEventListener("message", onMessage);
+          if (pollTimer) clearInterval(pollTimer);
         };
 
         const onMessage = (messageEvent: MessageEvent) => {
@@ -110,6 +111,16 @@ export default function LoginPage() {
         };
 
         window.addEventListener("message", onMessage);
+        const pollTimer = setInterval(async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              closePopupAndCleanup();
+            }
+          } catch {
+            // ignore
+          }
+        }, 500);
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (event === "SIGNED_IN" && session) {

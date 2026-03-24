@@ -363,6 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const closePopupAndCleanup = () => {
         popupWindow?.close();
         window.removeEventListener("message", onMessage);
+        if (pollTimer) clearInterval(pollTimer);
       };
 
       const onMessage = (messageEvent: MessageEvent) => {
@@ -373,6 +374,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       window.addEventListener("message", onMessage);
+      const pollTimer = setInterval(async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            closePopupAndCleanup();
+          }
+        } catch {
+          // ignore
+        }
+      }, 500);
 
       const {
         data: { subscription },
