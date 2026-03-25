@@ -1,5 +1,6 @@
 
 import { Metadata } from "next";
+import { headers } from "next/headers";
 
 export async function generateMetadata({
   params,
@@ -8,7 +9,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const characterId = id;
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
+  const incomingHeaders = await headers();
+  const forwardedProto = incomingHeaders.get("x-forwarded-proto");
+  const proto =
+    forwardedProto?.split(",")[0]?.trim().toLowerCase() === "http" ? "http" : "https";
+  const host = incomingHeaders.get("host");
+  const baseUrl = host ? `${proto}://${host}` : process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
   const characterUrl = `${baseUrl}/chat/${characterId}`;
   const ogImageUrl = `${baseUrl}/chat/${characterId}/opengraph-image`;
 
@@ -83,6 +89,26 @@ export async function generateMetadata({
       character.description_tr ||
       `Chat with ${character.name} on AiChatly`;
 
+    // Use the character's actual image for social previews (OG/Twitter scrapers)
+    // instead of relying on the dynamic `opengraph-image` renderer.
+    let characterImageUrl: string | undefined;
+    if (character.image_url) {
+      const raw = character.image_url;
+      if (raw.startsWith("http://") || raw.startsWith("https://")) {
+        characterImageUrl = raw;
+      } else if (raw.startsWith("//")) {
+        characterImageUrl = `https:${raw}`;
+      } else {
+        try {
+          characterImageUrl = new URL(raw, baseUrl).toString();
+        } catch {
+          // If the DB has an unexpected value, fall back to the dynamic OG renderer.
+          characterImageUrl = undefined;
+        }
+      }
+    }
+    const socialImageUrl = characterImageUrl || ogImageUrl;
+
     return {
       title: `${character.name}${occupation ? ` - ${occupation}` : ""} | AiChatly`,
       description: description,
@@ -93,7 +119,7 @@ export async function generateMetadata({
         siteName: "AiChatly",
         images: [
           {
-            url: ogImageUrl,
+            url: socialImageUrl,
             width: 1200,
             height: 1200,
             alt: character.name,
@@ -106,7 +132,7 @@ export async function generateMetadata({
         card: "summary_large_image",
         title: `${character.name}${occupation ? ` - ${occupation}` : ""}`,
         description: description,
-        images: [ogImageUrl],
+        images: [socialImageUrl],
         creator: "@aichatly",
       },
       alternates: {
