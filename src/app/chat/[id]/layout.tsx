@@ -21,7 +21,7 @@ export async function generateMetadata({
       ? `${proto}://${host}`
       : process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
   const characterUrl = `${baseUrl}/chat/${characterId}`;
-  const ogImageUrl = `${baseUrl}/chat/${characterId}/opengraph-image`;
+  const ogImageUrl = `${baseUrl}/icon-192.png`;
 
   try {
     // Fetch character server-side for metadata. Use service role key when available
@@ -56,7 +56,6 @@ export async function generateMetadata({
 
     if (!character) {
       return {
-        metadataBase: new URL(baseUrl),
         title: "Character Not Found",
         description: "The character you're looking for doesn't exist.",
         openGraph: {
@@ -109,7 +108,6 @@ export async function generateMetadata({
     const socialImageUrl = characterImageUrl || ogImageUrl;
 
     return {
-      metadataBase: new URL(baseUrl),
       title: `${character.name}${occupation ? ` - ${occupation}` : ""} | AiChatly`,
       description: description,
       openGraph: {
@@ -142,7 +140,6 @@ export async function generateMetadata({
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
-      metadataBase: new URL(baseUrl),
       title: "AiChatly - AI Character Chat",
       description: "Chat with AI characters on AiChatly",
       openGraph: {
