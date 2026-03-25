@@ -24,14 +24,35 @@ export async function generateMetadata({
   const ogImageUrl = `${baseUrl}/chat/${characterId}/opengraph-image`;
 
   try {
-    // Dynamically import to avoid top-level supabase instantiation at build time
-    const { supabaseAdmin } = await import("@/integrations/supabase/server");
+    // Fetch character server-side for metadata. Use service role key when available
+    // to bypass RLS (WhatsApp/Facebook scrapers need this to work reliably).
+    const supabaseUrl =
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_DATABASE_URL ||
+      "";
+    const serviceRoleKey =
+      process.env.SUPABASE_ROLE_KEY || process.env.DATABASE_SERVICE_ROLE_KEY || "";
 
-    const { data: character } = await supabaseAdmin
-      .from("characters")
-      .select("*")
-      .eq("id", characterId)
-      .maybeSingle();
+    let character: any = null;
+    if (supabaseUrl && serviceRoleKey) {
+      const { createClient } = await import("@supabase/supabase-js");
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      const { data } = await adminClient
+        .from("characters")
+        .select("*")
+        .eq("id", characterId)
+        .maybeSingle();
+      character = data ?? null;
+    } else {
+      // Fallback to existing helper (may be subject to RLS)
+      const { supabaseAdmin } = await import("@/integrations/supabase/server");
+      const { data } = await supabaseAdmin
+        .from("characters")
+        .select("*")
+        .eq("id", characterId)
+        .maybeSingle();
+      character = data ?? null;
+    }
 
     if (!character) {
       return {
