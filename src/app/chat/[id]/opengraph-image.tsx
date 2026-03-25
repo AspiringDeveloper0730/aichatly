@@ -33,8 +33,15 @@ export default async function Image({ params }: { params: { id: string } }) {
   const characterId = params.id;
 
   // Guard: if env vars are missing (e.g., at build time), return fallback immediately
-  const dbUrl = process.env.DATABASE_URL;
-  const dbKey = process.env.DATABASE_SERVICE_ROLE_KEY;
+  const dbUrl =
+    process.env.DATABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_DATABASE_URL;
+  const dbKey =
+    process.env.DATABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.app").replace(/\/$/, "");
 
   if (!dbUrl || !dbKey) {
     return new ImageResponse(<FallbackImage />, { ...size });
@@ -63,9 +70,23 @@ export default async function Image({ params }: { params: { id: string } }) {
       ? description.substring(0, 147) + "..." 
       : description;
 
-    let imageUrl = character.image_url;
-    if (imageUrl && !imageUrl.startsWith("http")) {
-      imageUrl = `https:${imageUrl}`;
+    // Supabase storage URLs may be absolute or relative (e.g. `/storage/...`), normalize to a fully-qualified URL.
+    const rawImageUrl = character.image_url;
+    let imageUrl: string | null = null;
+    if (rawImageUrl) {
+      if (rawImageUrl.startsWith("http://") || rawImageUrl.startsWith("https://")) {
+        imageUrl = rawImageUrl;
+      } else if (rawImageUrl.startsWith("//")) {
+        imageUrl = `https:${rawImageUrl}`;
+      } else if (rawImageUrl.startsWith("/")) {
+        imageUrl = `${baseUrl}${rawImageUrl}`;
+      } else {
+        imageUrl = `${baseUrl}/${rawImageUrl}`;
+      }
+    }
+
+    if (!imageUrl) {
+      return new ImageResponse(<FallbackImage />, { ...size });
     }
 
     return new ImageResponse(
