@@ -10,6 +10,41 @@ export const size = {
 };
 export const contentType = "image/png";
 
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  // Convert binary -> base64 without using Node's Buffer (edge runtime friendly).
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    let chunkBinary = "";
+    for (let j = 0; j < chunk.length; j++) {
+      chunkBinary += String.fromCharCode(chunk[j]);
+    }
+    binary += chunkBinary;
+  }
+  return btoa(binary);
+}
+
+async function fetchImageAsDataUrl(imageUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(imageUrl);
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") || "image/png";
+    const arrayBuffer = await res.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    // Keep payload size reasonable for OG rendering.
+    // If the image is too large, skip embedding and let caller decide fallback.
+    if (bytes.byteLength > 2_500_000) return null; // ~2.5MB
+
+    const base64 = uint8ArrayToBase64(bytes);
+    return `data:${contentType};base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
+
 function FallbackImage() {
   return (
     <div
@@ -94,6 +129,13 @@ export default async function Image({ params }: { params: { id: string } }) {
       }
     }
 
+    // Pre-fetch and embed the character image so the OG renderer doesn't
+    // fail due to external fetch restrictions / failures.
+    let embeddedImageUrl: string | undefined;
+    if (imageUrl) {
+      embeddedImageUrl = await fetchImageAsDataUrl(imageUrl) || undefined;
+    }
+
     return new ImageResponse(
       (
         <div
@@ -105,15 +147,17 @@ export default async function Image({ params }: { params: { id: string } }) {
             backgroundColor: "#0f0f0f",
           }}
         >
-          <img
-            src={imageUrl}
-            alt={character.name}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
+          {embeddedImageUrl ? (
+            <img
+              src={embeddedImageUrl}
+              alt={character.name}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+          ) : null}
 
           <div
             style={{
@@ -185,7 +229,8 @@ export default async function Image({ params }: { params: { id: string } }) {
                 padding: "16px 24px",
                 backgroundColor: "rgba(0,0,0,0.7)",
                 borderRadius: 12,
-                width: "fit-content",
+                // `fit-content` is not supported by the OG renderer; keep the container sized by its content.
+                // (Leaving width undefined avoids OG layout crashes.)
               }}
             >
               <div
