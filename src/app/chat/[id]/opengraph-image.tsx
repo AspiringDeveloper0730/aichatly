@@ -33,8 +33,14 @@ export default async function Image({ params }: { params: { id: string } }) {
   const characterId = params.id;
 
   // Guard: if env vars are missing (e.g., at build time), return fallback immediately
-  const dbUrl = process.env.DATABASE_URL;
-  const dbKey = process.env.DATABASE_SERVICE_ROLE_KEY;
+  // Use the same env vars as our `supabaseAdmin` helper (public Supabase credentials),
+  // so this edge OG endpoint can still fetch character data even if service role
+  // env vars are not available in the edge runtime.
+  const dbUrl =
+    process.env.NEXT_PUBLIC_DATABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const dbKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
 
   if (!dbUrl || !dbKey) {

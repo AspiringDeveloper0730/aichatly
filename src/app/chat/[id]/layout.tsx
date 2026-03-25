@@ -18,34 +18,6 @@ export async function generateMetadata({
   const characterUrl = `${baseUrl}/chat/${characterId}`;
   const ogImageUrl = `${baseUrl}/chat/${characterId}/opengraph-image`;
 
-  // Guard: if DATABASE_URL is not set (e.g., at build time), return default metadata
-  if (!process.env.DATABASE_URL) {
-    return {
-      title: "AiChatly - AI Character Chat",
-      description: "Chat with AI characters on AiChatly",
-      openGraph: {
-        url: characterUrl,
-        siteName: "AiChatly",
-        images: [
-          {
-            url: ogImageUrl,
-            width: 1200,
-            height: 1200,
-            alt: "AiChatly",
-          },
-        ],
-        type: "website",
-      },
-      twitter: {
-        card: "summary_large_image",
-        images: [ogImageUrl],
-      },
-      alternates: {
-        canonical: characterUrl,
-      },
-    };
-  }
-
   try {
     // Dynamically import to avoid top-level supabase instantiation at build time
     const { supabaseAdmin } = await import("@/integrations/supabase/server");
