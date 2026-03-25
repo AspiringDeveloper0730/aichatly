@@ -13,8 +13,13 @@ export async function generateMetadata({
   const forwardedProto = incomingHeaders.get("x-forwarded-proto");
   const proto =
     forwardedProto?.split(",")[0]?.trim().toLowerCase() === "http" ? "http" : "https";
-  const host = incomingHeaders.get("host");
-  const baseUrl = host ? `${proto}://${host}` : process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
+  const forwardedHost = incomingHeaders.get("x-forwarded-host");
+  const host =
+    forwardedHost?.split(",")[0]?.trim() || incomingHeaders.get("host") || "";
+  const baseUrl =
+    host
+      ? `${proto}://${host}`
+      : process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
   const characterUrl = `${baseUrl}/chat/${characterId}`;
   const ogImageUrl = `${baseUrl}/chat/${characterId}/opengraph-image`;
 
