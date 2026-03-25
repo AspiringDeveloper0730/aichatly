@@ -1,5 +1,6 @@
 
 import { ImageResponse } from "next/og";
+import { headers } from "next/headers";
 
 export const runtime = "edge";
 export const alt = "Character Chat";
@@ -41,7 +42,17 @@ export default async function Image({ params }: { params: { id: string } }) {
   const dbKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.com";
+  // Use request host as the canonical public base URL so storage paths like `/storage/...`
+  // resolve correctly on Vercel domains.
+  const incomingHeaders = await headers();
+  const forwardedProto = incomingHeaders.get("x-forwarded-proto");
+  const proto =
+    forwardedProto?.split(",")[0]?.trim().toLowerCase() === "http" ? "http" : "https";
+  const host = incomingHeaders.get("host");
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (host ? `${proto}://${host}` : undefined) ||
+    "https://aichatly.com";
 
   if (!dbUrl || !dbKey) {
     return new ImageResponse(<FallbackImage />, { ...size });
@@ -70,10 +81,17 @@ export default async function Image({ params }: { params: { id: string } }) {
       ? description.substring(0, 147) + "..." 
       : description;
 
-    let imageUrl = character.image_url;
-    if (imageUrl) {
-      // `image_url` might be stored as `/storage/...` or `//cdn...`.
-      imageUrl = new URL(imageUrl, baseUrl).toString();
+    let imageUrl: string | undefined;
+    if (character.image_url) {
+      const raw = character.image_url;
+      if (raw.startsWith("http://") || raw.startsWith("https://")) {
+        imageUrl = raw;
+      } else if (raw.startsWith("//")) {
+        imageUrl = `https:${raw}`;
+      } else {
+        // Handle `/storage/...`, `storage/...`, etc.
+        imageUrl = new URL(raw, baseUrl).toString();
+      }
     }
 
     return new ImageResponse(

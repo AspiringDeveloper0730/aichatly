@@ -335,10 +335,25 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
     const siteBase =
       process.env.NEXT_PUBLIC_SITE_URL ||
       (typeof window !== "undefined" ? window.location.origin : "");
-    const urlObj = new URL(`/chat/${character.id}`, siteBase);
-    urlObj.searchParams.set("share_id", prepareData.shareId);
-    urlObj.searchParams.set("share_platform", platform);
-    const shareUrl = urlObj.toString();
+    // Social bots should receive exactly the chat URL (no query params).
+    // Since we can't track "click-through" anymore without a token in the URL,
+    // we record the share reward immediately after `prepare` succeeds.
+    const shareUrl = new URL(`/chat/${character.id}`, siteBase).toString();
+
+    try {
+      await fetch("/api/rewards/character-share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "verify_click",
+          shareId: prepareData.shareId,
+        }),
+      });
+    } catch (e) {
+      console.error("Error verifying share reward:", e);
+    }
     const shareTitle = `${character.name}${occupation ? ` - ${occupation}` : ""}`;
     const shareDescription = description || `Chat with ${character.name} on AiChatly`;
     const shareText = `${shareTitle}\n${shareDescription}`;
@@ -369,8 +384,8 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
       setShowShareMenu(false);
       toast.success(
         language === "tr"
-          ? "Paylaşım penceresi açıldı. Linke tıklanınca +5 hak kazanırsınız."
-          : "Share window opened. You will get +5 when the shared link is clicked."
+          ? "Paylaşım penceresi açıldı. Paylaşım ödülü alındı."
+          : "Share window opened. Reward recorded."
       );
     }
   };
