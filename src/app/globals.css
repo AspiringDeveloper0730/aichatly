@@ -192,17 +192,25 @@
 .banner-outer {
   width: 100%;
   position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #050214;
 }
 
 .banner-inner {
   position: relative;
   width: 100%;
+  overflow: hidden;
+  background: #050214;
 }
 
 .banner-img {
   display: block;
   width: 100%;
   height: auto;
+  max-width: 100%;
+  image-rendering: auto;
+  object-position: right center;
 }
 
 .banner-track {
@@ -214,6 +222,7 @@
 .banner-slide {
   min-width: 100%;
   position: relative;
+  background: #050214;
 }
 
 .banner-dots {
@@ -228,8 +237,8 @@
 }
 
 .banner-dot {
-  width: 0.58rem;
-  height: 0.58rem;
+  width: 0.48rem;
+  height: 0.48rem;
   border-radius: 9999px;
   border: 1px solid #00e5ff;
   background: rgba(0, 229, 255, 0.3);
@@ -238,7 +247,7 @@
 }
 
 .banner-dot.is-active {
-  width: 1.25rem;
+  width: 1rem;
   background: #00e5ff;
   box-shadow:
     0 0 10px rgba(0, 229, 255, 0.7),
@@ -248,7 +257,10 @@
 /* TABLET & DESKTOP: clip to 40% of natural height, full image visible via object-fit:contain */
 @media (min-width: 768px) {
   .banner-outer {
-    padding-top: 15%;
+    /* padding-top creates the clipped height = 40% of natural image height.
+       Natural ratio 2.667:1 → natural height = 37.5% of width.
+       40% of that = 15% of width → padding-top: 15% */
+    padding-top: 20%;
     height: 0;
     overflow: hidden;
     position: relative;
@@ -274,8 +286,9 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    object-position: center;
+    object-position: right center;
     display: block;
+    image-rendering: auto;
   }
 }
 
@@ -308,13 +321,44 @@
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
+/* Tablet/laptop range: keep all banner content safely inside clipped height */
+@media (min-width: 768px) and (max-width: 1152px) {
+  .banner-text-area {
+    padding-top: 0.2rem;
+    padding-bottom: 1.2rem;
+  }
+
+  .banner-content-stack {
+    max-width: 47% !important;
+    gap: 0.3rem !important;
+  }
+
+  .banner-title {
+    font-size: clamp(0.95rem, 2.3vw, 1.75rem);
+    line-height: 1.08;
+  }
+
+  .banner-subtitle {
+    font-size: clamp(0.6rem, 1vw, 0.8rem);
+    line-height: 1.3;
+  }
+
+  .banner-cta-wrap {
+    margin-top: 0.12rem !important;
+  }
+
+  .banner-dots {
+    bottom: 0.38rem;
+  }
+}
+
 /* ── Neon Start Button ── */
 .neon-start-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(0.4rem, 1.2vw, 0.65rem) clamp(1rem, 3vw, 2rem);
-  font-size: clamp(0.7rem, 1.4vw, 0.95rem);
+  padding: clamp(0.34rem, 1vw, 0.56rem) clamp(0.9rem, 2.6vw, 1.7rem);
+  font-size: clamp(0.66rem, 1.2vw, 0.88rem);
   font-weight: 700;
   color: #c8f8ff;
   background: rgba(5, 10, 30, 0.82);

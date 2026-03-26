@@ -72,7 +72,7 @@ export const CampaignBanner = memo(function CampaignBanner() {
           className="banner-track"
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >
-          {BANNERS.map((banner) => (
+          {BANNERS.map((banner, index) => (
             <div key={banner.title} className="banner-slide">
               <img
                 src={banner.image}
@@ -86,13 +86,15 @@ export const CampaignBanner = memo(function CampaignBanner() {
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, ease: "easeOut" }}
-                  className="flex flex-col gap-2 sm:gap-3 max-w-[52%] sm:max-w-[48%] md:max-w-[44%]"
+                  className="banner-content-stack flex flex-col gap-2 sm:gap-3 max-w-[52%] sm:max-w-[48%] md:max-w-[44%]"
                 >
                   <h1 className="banner-title">{banner.title}</h1>
                   <p className="banner-subtitle">{banner.subtitle}</p>
-                  <div className="mt-2 sm:mt-3">
-                    <StartNowButton />
-                  </div>
+                  {index === 0 ? (
+                    <div className="banner-cta-wrap mt-2 sm:mt-3">
+                      <StartNowButton />
+                    </div>
+                  ) : null}
                 </motion.div>
               </div>
             </div>
