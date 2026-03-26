@@ -192,22 +192,17 @@
 .banner-outer {
   width: 100%;
   position: relative;
-  border-radius: 1rem;
-  overflow: hidden;
 }
 
 .banner-inner {
   position: relative;
   width: 100%;
-  overflow: hidden;
 }
 
 .banner-img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  height: auto;
 }
 
 .banner-track {
@@ -219,7 +214,6 @@
 .banner-slide {
   min-width: 100%;
   position: relative;
-  aspect-ratio: 16 / 9;
 }
 
 .banner-dots {
@@ -254,16 +248,34 @@
 /* TABLET & DESKTOP: clip to 40% of natural height, full image visible via object-fit:contain */
 @media (min-width: 768px) {
   .banner-outer {
-    height: auto;
+    padding-top: 15%;
+    height: 0;
+    overflow: hidden;
+    position: relative;
+    border-radius: 1rem;
   }
 
   .banner-inner {
-    position: relative;
+    position: absolute;
+    inset: 0;
     width: 100%;
+    height: 100%;
+  }
+
+  .banner-track {
+    height: 100%;
   }
 
   .banner-slide {
-    aspect-ratio: 21 / 7;
+    height: 100%;
+  }
+
+  .banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
   }
 }
 

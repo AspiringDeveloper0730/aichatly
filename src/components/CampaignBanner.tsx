@@ -16,7 +16,7 @@ const BANNERS: BannerItem[] = [
   {
     image: "/banner_1.jpeg",
     title: "Create Your Character",
-    subtitle: "Your profession, your personality is in your hands",
+    subtitle: "Your profession, personality, and story are in your hands",
   },
   {
     image: "/banner_2.jpeg",
@@ -80,13 +80,13 @@ export const CampaignBanner = memo(function CampaignBanner() {
                 className="banner-img"
                 draggable={false}
               />
-              <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-10 md:px-14 lg:px-16 banner-text-area">
+              <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 md:px-14 lg:px-16 banner-text-area">
                 <motion.div
                   key={banner.title}
-                  initial={{ opacity: 0, y: 16 }}
+                  initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="flex flex-col gap-2 sm:gap-3 max-w-[78%] sm:max-w-[60%] md:max-w-[46%]"
+                  transition={{ duration: 0.7, ease: "easeOut" }}
+                  className="flex flex-col gap-2 sm:gap-3 max-w-[52%] sm:max-w-[48%] md:max-w-[44%]"
                 >
                   <h1 className="banner-title">{banner.title}</h1>
                   <p className="banner-subtitle">{banner.subtitle}</p>
