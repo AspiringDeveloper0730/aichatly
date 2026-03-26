@@ -45,10 +45,7 @@ export const metadata: Metadata = {
     images: ["https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png"],
   },
   icons: {
-    icon: [
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-    ],
+    icon: [{ url: "/Logo.png", type: "image/png" }],
     apple: [
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],

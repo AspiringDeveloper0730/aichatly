@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import Image from "next/image";
 
 export default function ResetPasswordPage() {
   const { t } = useLanguage();
@@ -196,13 +196,15 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-              <div className="w-10 h-10 rounded-lg gradient-blue-purple flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <span className="bg-gradient-to-r from-[oklch(0.55_0.22_264)] to-[oklch(0.55_0.25_300)] bg-clip-text text-transparent">
-                Aichatly
-              </span>
+            <Link href="/" className="inline-flex items-center justify-center">
+              <Image
+                src="/Logo.png"
+                alt="Logo"
+                width={200}
+                height={68}
+                className="h-14 w-auto object-contain"
+                priority
+              />
             </Link>
           </div>
 
@@ -237,13 +239,15 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2 font-bold text-2xl">
-            <div className="w-10 h-10 rounded-lg gradient-blue-purple flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <span className="bg-gradient-to-r from-[oklch(0.55_0.22_264)] to-[oklch(0.55_0.25_300)] bg-clip-text text-transparent">
-              Aichatly
-            </span>
+          <Link href="/" className="inline-flex items-center justify-center">
+            <Image
+              src="/Logo.png"
+              alt="Logo"
+              width={200}
+              height={68}
+              className="h-14 w-auto object-contain"
+              priority
+            />
           </Link>
         </div>
 

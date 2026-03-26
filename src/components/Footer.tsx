@@ -15,11 +15,11 @@ export function Footer() {
           <div className="flex flex-col items-start">
             <div className="mb-4">
               <Image
-                src="https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png"
-                alt="AiChatly Logo"
+                src="/Logo.png"
+                alt="Logo"
                 width={160}
-                height={50}
-                className="h-12 w-auto object-contain"
+                height={54}
+                className="h-10 sm:h-12 w-auto object-contain"
               />
             </div>
             <p className="text-sm text-white/80">
@@ -113,11 +113,11 @@ export function Footer() {
           <div className="flex flex-col items-start">
             <div className="mb-4">
               <Image
-                src="https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png"
-                alt="AiChatly Logo"
+                src="/Logo.png"
+                alt="Logo"
                 width={160}
-                height={50}
-                className="h-12 w-auto object-contain"
+                height={54}
+                className="h-10 sm:h-12 w-auto object-contain"
               />
             </div>
             <p className="text-sm text-white/80">

@@ -26,7 +26,7 @@ interface Character {
 
 export default function ChatPage() {
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
@@ -34,11 +34,33 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
     loadCharacters();
-  }, [user]);
+  }, [user, loading]);
 
   const loadCharacters = async () => {
     try {
+      if (user) {
+        const { data: latestConversation, error: conversationError } = await supabase
+          .from("conversations")
+          .select("character_id")
+          .eq("user_id", user.id)
+          .order("last_message_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!conversationError && latestConversation?.character_id) {
+          router.replace(`/chat/${latestConversation.character_id}`);
+          return;
+        }
+      }
+
       const [charactersResult, likesResult, favoritesResult] = await Promise.all([
         supabase
           .from("characters")

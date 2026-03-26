@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Shield } from "lucide-react";
+import Image from "next/image";
 
 export type AdminSection =
   | "users"
@@ -50,7 +51,17 @@ export default function AdminPanelPage() {
   if (!user && (loading || roleLoading)) {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
-        <div className="text-white text-lg">Loading...</div>
+        <div className="flex flex-col items-center gap-4">
+          <Image
+            src="/Logo.png"
+            alt="Logo"
+            width={180}
+            height={60}
+            className="h-12 w-auto object-contain"
+            priority
+          />
+          <div className="text-white text-lg">Loading...</div>
+        </div>
       </div>
     );
   }

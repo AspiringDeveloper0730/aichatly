@@ -72,25 +72,25 @@ function PlusPackageCard({ packages, language, onCheckout, loadingId }: PlusPack
     currentPkg.discounted_price_cents != null;
 
   return (
-    <div className="relative bg-gradient-to-br from-[#1a1a2e] to-[#1a1a1a] border-2 border-[#a855f7]/50 rounded-2xl p-5 md:p-6 lg:p-8 hover:border-[#a855f7] transition-all duration-300 hover:shadow-[0_0_40px_rgba(168,85,247,0.3)] group">
+    <div className="relative bg-gradient-to-br from-[#1a1a2e] to-[#1a1a1a] border-2 border-[#a855f7]/50 rounded-2xl p-4 md:p-5 lg:p-6 hover:border-[#a855f7] transition-all duration-300 hover:shadow-[0_0_40px_rgba(168,85,247,0.3)] group">
       {/* Popular badge */}
-      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#a855f7] to-[#6366f1] text-white px-5 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">
+      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#a855f7] to-[#6366f1] text-white px-4 py-1 rounded-full text-xs md:text-sm font-bold whitespace-nowrap">
         ⭐ {language === "tr" ? "En Popüler" : "Most Popular"}
       </div>
 
       {/* Icon */}
-      <div className="mb-4 flex justify-center">
-        <Crown className="w-10 h-10 text-[#a855f7]" />
+      <div className="mb-3 flex justify-center">
+        <Crown className="w-8 h-8 md:w-9 md:h-9 text-[#a855f7]" />
       </div>
 
       {/* Title */}
-      <h3 className="text-xl md:text-2xl font-bold text-white text-center mb-4">Plus</h3>
+      <h3 className="text-lg md:text-xl font-bold text-white text-center mb-3">Plus</h3>
 
       {/* Period toggle */}
-      <div className="flex items-center justify-center gap-2 mb-6">
+      <div className="flex items-center justify-center gap-2 mb-4">
         <button
           onClick={() => setSelectedPeriod("monthly")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+          className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
             selectedPeriod === "monthly"
               ? "bg-[#a855f7] text-white"
               : "bg-white/[0.05] text-white/60 hover:bg-white/[0.1]"
@@ -100,7 +100,7 @@ function PlusPackageCard({ packages, language, onCheckout, loadingId }: PlusPack
         </button>
         <button
           onClick={() => setSelectedPeriod("yearly")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+          className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
             selectedPeriod === "yearly"
               ? "bg-[#a855f7] text-white"
               : "bg-white/[0.05] text-white/60 hover:bg-white/[0.1]"
@@ -116,7 +116,7 @@ function PlusPackageCard({ packages, language, onCheckout, loadingId }: PlusPack
       </div>
 
       {/* Pricing */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-4">
         {hasDiscount ? (
           <div className="flex flex-col items-center gap-1">
             <span className="text-xs md:text-sm text-white/40 line-through">
@@ -148,13 +148,13 @@ function PlusPackageCard({ packages, language, onCheckout, loadingId }: PlusPack
       </div>
 
       {/* Features */}
-      <ul className="space-y-2.5 mb-6">
+      <ul className="space-y-2 mb-4">
         {features.map((feature, i) => (
           <li key={i} className="flex items-start gap-3 text-white/80">
             <span className="text-[#a855f7] mt-0.5 flex-shrink-0">
               <Check className="w-4 h-4" />
             </span>
-            <span className="text-sm">{feature}</span>
+            <span className="text-xs md:text-sm">{feature}</span>
           </li>
         ))}
       </ul>
@@ -163,7 +163,7 @@ function PlusPackageCard({ packages, language, onCheckout, loadingId }: PlusPack
       <button
         onClick={() => onCheckout(currentPkg)}
         disabled={isLoading || loadingId !== null}
-        className="w-full bg-gradient-to-r from-[#a855f7] to-[#6366f1] text-white font-bold py-3 px-6 rounded-xl hover:opacity-90 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full bg-gradient-to-r from-[#a855f7] to-[#6366f1] text-white font-bold py-2.5 px-5 rounded-xl hover:opacity-90 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
       >
         {isLoading ? (
           <>
@@ -223,28 +223,28 @@ function RegularPackageCard({
 
   return (
     <div
-      className={`relative bg-[#1a1a1a] border rounded-2xl p-5 md:p-6 lg:p-8 hover:border-[#6366f1]/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] group ${
+      className={`relative bg-[#1a1a1a] border rounded-2xl p-4 md:p-5 lg:p-6 hover:border-[#6366f1]/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] group ${
         pkg.is_featured
           ? "border-[#6366f1]/40"
           : "border-white/[0.08]"
       }`}
     >
       {pkg.is_featured && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#6366f1] to-[#a855f7] text-white px-4 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#6366f1] to-[#a855f7] text-white px-3.5 py-1 rounded-full text-xs md:text-sm font-bold whitespace-nowrap">
           {language === "tr" ? "Önerilen" : "Recommended"}
         </div>
       )}
 
       {/* Icon */}
-      <div className="mb-4 flex justify-center">{getIcon(pkg.quota_tier)}</div>
+      <div className="mb-3 flex justify-center">{getIcon(pkg.quota_tier)}</div>
 
       {/* Name */}
-      <h3 className="text-xl md:text-2xl font-bold text-white text-center mb-4">
+      <h3 className="text-lg md:text-xl font-bold text-white text-center mb-3">
         {language === "tr" ? pkg.name_tr : pkg.name_en}
       </h3>
 
       {/* Pricing */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-4">
         {isFree ? (
           <span className="text-4xl font-bold text-white">
             {language === "tr" ? "Ücretsiz" : "Free"}
@@ -286,13 +286,13 @@ function RegularPackageCard({
       </div>
 
       {/* Features */}
-      <ul className="space-y-2.5 mb-6">
+      <ul className="space-y-2 mb-4">
         {features.map((feature, i) => (
           <li key={i} className="flex items-start gap-3 text-white/80">
             <span className="text-[#6366f1] mt-0.5 flex-shrink-0">
               <Check className="w-4 h-4" />
             </span>
-            <span className="text-sm">{feature}</span>
+            <span className="text-xs md:text-sm">{feature}</span>
           </li>
         ))}
       </ul>
@@ -301,7 +301,7 @@ function RegularPackageCard({
       {isFree ? (
         <button
           onClick={handleFreeClick}
-          className="w-full bg-white/[0.05] border border-white/[0.15] text-white font-bold py-3 px-6 rounded-xl hover:bg-white/[0.1] transition-all duration-300 flex items-center justify-center gap-2"
+          className="w-full bg-white/[0.05] border border-white/[0.15] text-white font-bold py-2.5 px-5 rounded-xl hover:bg-white/[0.1] transition-all duration-300 flex items-center justify-center gap-2 text-sm"
         >
           {language === "tr" ? "Başla" : "Get Started"}
         </button>
@@ -309,7 +309,7 @@ function RegularPackageCard({
         <button
           onClick={() => onCheckout(pkg)}
           disabled={isLoading || loadingId !== null}
-          className="w-full bg-[#1a1a1a] border-2 border-[#6366f1] text-white font-bold py-3 px-6 rounded-xl hover:bg-gradient-to-r hover:from-[#6366f1] hover:to-[#a855f7] hover:border-transparent transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-[#1a1a1a] border-2 border-[#6366f1] text-white font-bold py-2.5 px-5 rounded-xl hover:bg-gradient-to-r hover:from-[#6366f1] hover:to-[#a855f7] hover:border-transparent transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
         >
           {isLoading ? (
             <>

@@ -18,6 +18,13 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+const NAV_LOGO = {
+  src: "/Logo.png",
+  width: 180,
+  height: 60,
+  className: "h-11 md:h-12 w-auto object-contain",
+};
+
 export function Navbar() {
   const { t, language, setLanguage } = useLanguage();
   const { user, signOut } = useAuth();
@@ -83,11 +90,11 @@ export function Navbar() {
         <div className="max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center flex-shrink-0">
             <Image
-              src="https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png"
-              alt="AiChatly Logo"
-              width={240}
-              height={80}
-              className="h-12 w-auto object-contain"
+              src={NAV_LOGO.src}
+              alt="Logo"
+              width={NAV_LOGO.width}
+              height={NAV_LOGO.height}
+              className={NAV_LOGO.className}
               priority
             />
           </Link>
@@ -102,11 +109,11 @@ export function Navbar() {
         <div className="max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center flex-shrink-0">
             <Image
-              src="https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png"
-              alt="AiChatly Logo"
-              width={240}
-              height={80}
-              className="h-12 w-auto object-contain"
+              src={NAV_LOGO.src}
+              alt="Logo"
+              width={NAV_LOGO.width}
+              height={NAV_LOGO.height}
+              className={NAV_LOGO.className}
               priority
             />
           </Link>
@@ -211,11 +218,11 @@ export function Navbar() {
         <div className="w-full max-w-[100vw] mx-auto px-4 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center flex-shrink-0">
             <Image
-              src="https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png"
-              alt="AiChatly Logo"
-              width={240}
-              height={80}
-              className="h-12 w-auto object-contain"
+              src={NAV_LOGO.src}
+              alt="Logo"
+              width={NAV_LOGO.width}
+              height={NAV_LOGO.height}
+              className={NAV_LOGO.className}
               priority
             />
           </Link>
