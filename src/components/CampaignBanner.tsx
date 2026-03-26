@@ -1,13 +1,34 @@
 
 "use client";
 
-import React, { memo } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 
-const BANNER_IMAGE =
-  "https://cdn.chat2db-ai.com/app/avatar/custom/04969366-ff3e-490b-8ae8-9a775000e34f_749150.jpg";
+type BannerItem = {
+  image: string;
+  title: string;
+  subtitle: string;
+};
+
+const BANNERS: BannerItem[] = [
+  {
+    image: "/banner_1.jpeg",
+    title: "Create Your Character",
+    subtitle: "Your profession, your personality is in your hands",
+  },
+  {
+    image: "/banner_2.jpeg",
+    title: "Connect Instantly",
+    subtitle: "Realistic conversations, infinite memory",
+  },
+  {
+    image: "/banner_3.jpeg",
+    title: "Endless Evolution",
+    subtitle: "Let it grow with you, let it evolve with you",
+  },
+];
 
 function StartNowButton() {
   const { user } = useAuth();
@@ -34,61 +55,61 @@ function StartNowButton() {
 }
 
 export const CampaignBanner = memo(function CampaignBanner() {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % BANNERS.length);
+    }, 5500);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   return (
-    /*
-      STRATEGY — "clip container + scaleY image + inverse-scale text"
-
-      MOBILE (< 768px):
-        • No transforms at all. Banner renders at its full natural size.
-        • .banner-outer: height = auto, overflow = visible.
-
-      TABLET & DESKTOP (≥ 768px):
-        • .banner-outer clips to exactly 40% of the image's natural height
-          using overflow:hidden + a fixed aspect-ratio that is 40% of the
-          image's own aspect ratio.
-          Image natural ratio ≈ 2.667:1  →  clipped ratio = 2.667/0.4 = 6.667:1
-          We express this as padding-top trick: 100% / 6.667 ≈ 15%.
-        • The <img> is stretched to fill the full clip window via
-          object-fit:contain + height:100% so the ENTIRE image is always
-          visible — nothing is cropped.
-        • The text overlay is positioned absolutely and uses a normal font
-          size — it is NOT scaled, so text and button are never compressed.
-
-      Result:
-        ✅ Full image visible — zero cropping
-        ✅ Image proportions preserved (object-fit: contain)
-        ✅ Text and button at natural readable size
-        ✅ No black gaps, no dead space
-        ✅ Mobile unchanged
-    */
     <div className="banner-outer">
       <div className="banner-inner">
-        {/* Full image — always fully visible, never cropped */}
-        <img
-          src={BANNER_IMAGE}
-          alt="Create Your Character"
-          className="banner-img"
-          draggable={false}
-        />
-
-        {/* Text overlay — positioned over the visible clip area */}
-        <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-10 md:px-14 lg:px-16 banner-text-area">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="flex flex-col gap-2 sm:gap-3 max-w-[52%] sm:max-w-[48%] md:max-w-[44%]"
-          >
-            <h1 className="banner-title">Create Your Character</h1>
-
-            <p className="banner-subtitle">
-              Your profession, personality, and story are in your hands
-            </p>
-
-            <div className="mt-2 sm:mt-3">
-              <StartNowButton />
+        <div
+          className="banner-track"
+          style={{ transform: `translateX(-${activeIndex * 100}%)` }}
+        >
+          {BANNERS.map((banner) => (
+            <div key={banner.title} className="banner-slide">
+              <img
+                src={banner.image}
+                alt={banner.title}
+                className="banner-img"
+                draggable={false}
+              />
+              <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-10 md:px-14 lg:px-16 banner-text-area">
+                <motion.div
+                  key={banner.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="flex flex-col gap-2 sm:gap-3 max-w-[78%] sm:max-w-[60%] md:max-w-[46%]"
+                >
+                  <h1 className="banner-title">{banner.title}</h1>
+                  <p className="banner-subtitle">{banner.subtitle}</p>
+                  <div className="mt-2 sm:mt-3">
+                    <StartNowButton />
+                  </div>
+                </motion.div>
+              </div>
             </div>
-          </motion.div>
+          ))}
+        </div>
+
+        <div className="banner-dots" aria-label="Banner navigation dots">
+          {BANNERS.map((banner, index) => (
+            <button
+              key={banner.title}
+              type="button"
+              aria-label={`Go to banner ${index + 1}`}
+              aria-current={activeIndex === index}
+              className={`banner-dot ${activeIndex === index ? "is-active" : ""}`}
+              onClick={() => setActiveIndex(index)}
+            />
+          ))}
         </div>
       </div>
     </div>
