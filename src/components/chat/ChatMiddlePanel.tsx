@@ -71,6 +71,12 @@ export function ChatMiddlePanel({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const deleteMenuRef = useRef<HTMLDivElement>(null);
+  const userBubbleStyle: React.CSSProperties = {
+    background: "linear-gradient(90deg, #5B8CFF 0%, #7A5CFF 100%)",
+  };
+  const characterBubbleStyle: React.CSSProperties = {
+    backgroundColor: "#2a2a2a",
+  };
 
   const occupation = language === "tr" ? character.occupation_tr : character.occupation_en;
 
@@ -307,7 +313,7 @@ export function ChatMiddlePanel({
             )}
 
             {/* Character Avatar */}
-            <div className="relative w-10 h-10 rounded-full overflow-hidden">
+            <div className="relative w-10 h-10 min-w-10 min-h-10 rounded-full overflow-hidden flex-shrink-0">
               <Image
                 src={character.image_url}
                 alt={character.name}
@@ -327,18 +333,6 @@ export function ChatMiddlePanel({
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
-            {/* Save Button (Guest Only) */}
-            {isGuest && messages.length > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSaveChat}
-                className="text-white hover:bg-white/[0.05]"
-                title={language === "tr" ? "Sohbeti Kaydet" : "Save Chat"}
-              >
-                <Save className="w-5 h-5" />
-              </Button>
-            )}
 
             {showMobileControls && (
               <Button
@@ -461,10 +455,11 @@ export function ChatMiddlePanel({
                     className={cn(
                       "px-4 py-3 rounded-2xl max-w-[75%] md:max-w-[65%]",
                       message.sender_type === "user"
-                        ? "bg-gradient-to-r from-[#5B8CFF] to-[#7A5CFF] text-white rounded-tr-sm"
+                        ? "text-white rounded-tr-sm"
                         // Keep character messages in a black/gray tone to match the chat dark UI.
-                        : "bg-[#2a2a2a] text-white rounded-tl-sm"
+                        : "text-white rounded-tl-sm"
                     )}
+                    style={message.sender_type === "user" ? userBubbleStyle : characterBubbleStyle}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {message.content}
@@ -494,7 +489,7 @@ export function ChatMiddlePanel({
                     className="object-cover"
                   />
                 </div>
-                <div className="bg-[#2a2a2a] text-white px-4 py-3 rounded-2xl rounded-tl-sm">
+                <div className="text-white px-4 py-3 rounded-2xl rounded-tl-sm" style={characterBubbleStyle}>
                   <div className="flex gap-1">
                     <div className="w-2 h-2 bg-[#5B8CFF] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                     <div className="w-2 h-2 bg-[#6B7CFF] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
