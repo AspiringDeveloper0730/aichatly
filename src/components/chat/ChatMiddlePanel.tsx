@@ -298,7 +298,7 @@ export function ChatMiddlePanel({
     <>
       <div className="h-full flex flex-col">
         {/* Header - Fixed */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-[#111111]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#222222] bg-[#111111]">
           <div className="flex items-center gap-3">
             {/* Mobile: Back/Menu Button */}
             {showMobileControls && (
