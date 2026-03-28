@@ -532,11 +532,12 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
             <Button 
               onClick={handleFavorite}
               disabled={isLoadingFavorite}
+              variant="outline"
               className={cn(
-                "w-full text-white transition-colors",
+                "w-full border-yellow-500/30 text-yellow-400 transition-colors",
                 isFavorited
-                  ? "bg-gradient-to-r from-[#facc15] to-[#eab308] hover:from-[#eab308] hover:to-[#ca8a04]"
-                  : "bg-gradient-to-r from-[#6366f1] to-[#a855f7] hover:from-[#4f46e5] hover:to-[#9333ea]"
+                  ? "bg-yellow-500/20 hover:bg-yellow-500/30"
+                  : "bg-yellow-500/10 hover:bg-yellow-500/20"
               )}
             >
               <Star 
@@ -546,7 +547,7 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
               {isLoadingFavorite 
                 ? (language === "tr" ? "Yükleniyor..." : "Loading...") 
                 : isFavorited 
-                  ? (language === "tr" ? "Favorilerden Çıkar" : "Remove from Favorites")
+                  ? (language === "tr" ? "Favorilere eklendi" : "Added to favorites")
                   : (language === "tr" ? "Favorilere Ekle" : "Add to Favorites")}
             </Button>
 
@@ -569,7 +570,7 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
               {isLoadingLike 
                 ? (language === "tr" ? "Yükleniyor..." : "Loading...") 
                 : isLiked 
-                  ? (language === "tr" ? "Beğeniyi Kaldır" : "Unlike")
+                  ? (language === "tr" ? "Bu karakteri beğendiniz" : "You liked this character")
                   : (language === "tr" ? "Karakteri Beğen" : "Rate Character")}
             </Button>
 

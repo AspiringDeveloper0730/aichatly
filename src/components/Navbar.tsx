@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV_LOGO = {
   src: "/Logo.png",
@@ -75,12 +76,46 @@ export function Navbar() {
     }
   }, [signOut, handleMenuClose, router, language]);
 
+  const handleChatMenuClick = useCallback(async () => {
+    if (!user) {
+      router.push("/chat");
+      handleMenuClose();
+      return;
+    }
+
+    try {
+      const { data: latestConversation, error } = await supabase
+        .from("conversations")
+        .select("id, character_id, last_message_at, created_at")
+        .eq("user_id", user.id)
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (latestConversation?.character_id && latestConversation?.id) {
+        router.push(
+          `/chat/${latestConversation.character_id}?conversationId=${latestConversation.id}`
+        );
+      } else {
+        router.push("/chat");
+      }
+    } catch (error) {
+      console.error("Failed to open latest chat:", error);
+      router.push("/chat");
+    } finally {
+      handleMenuClose();
+    }
+  }, [user, router, handleMenuClose]);
+
   const menuItems = [
     { label: t("nav.home"), href: "/" },
     { label: t("nav.prices"), href: "/pricing" },
     { label: t("nav.contact"), href: "/contact" },
     { label: t("nav.faq"), href: "/faq" },
-    { label: t("sidebar.chat"), href: "/chat" },
+    { label: t("sidebar.chat"), href: "/chat", onClick: handleChatMenuClick },
     { label: "Blog", href: "/blog" },
   ];
 
@@ -341,10 +376,10 @@ export function Navbar() {
       )}
 
       {isTablet && mobileMenuOpen && (
-        <div className="fixed top-[72px] right-0 w-[18%] max-w-[200px] h-[calc(100vh-72px)] bg-[#0A0A1F] z-[2000] shadow-2xl overflow-y-auto border-l border-border">
+        <div className="fixed top-[72px] right-0 w-[min(78vw,320px)] h-[calc(100vh-72px)] bg-[#0A0A1F] z-[2000] shadow-2xl overflow-y-auto overflow-x-hidden border-l border-border">
           <div className="px-2 py-3 flex flex-col gap-1.5 items-center">
             {menuItems.map((item) => (
-              <div key={item.href} className="w-auto">
+              <div key={item.href} className="w-full">
                 {item.onClick ? (
                   <Button
                     variant="ghost"
@@ -352,7 +387,7 @@ export function Navbar() {
                       item.onClick(e);
                       handleMenuClose();
                     }}
-                    className="text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto whitespace-nowrap"
+                    className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto text-center"
                   >
                     {item.label}
                   </Button>
@@ -360,7 +395,7 @@ export function Navbar() {
                   <Link href={item.href} onClick={handleMenuClose}>
                     <Button
                       variant="ghost"
-                      className="text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto whitespace-nowrap"
+                      className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto text-center"
                     >
                       {item.label}
                     </Button>
@@ -369,8 +404,8 @@ export function Navbar() {
               </div>
             ))}
 
-            <Link href="/panel?section=create-character" onClick={handleMenuClose} className="w-auto">
-              <button className="create-character-btn py-2 px-3 text-xs text-center whitespace-nowrap">
+            <Link href="/panel?section=create-character" onClick={handleMenuClose} className="w-full">
+              <button className="create-character-btn w-full py-2 px-3 text-xs text-center">
                 {t("sidebar.createCharacter")}
               </button>
             </Link>
@@ -387,7 +422,7 @@ export function Navbar() {
                     setLanguage("en");
                     handleMenuClose();
                   }}
-                  className="text-xs py-1.5 px-3 h-auto w-auto whitespace-nowrap"
+                  className="w-full text-xs py-1.5 px-3 h-auto"
                 >
                   English
                 </Button>
@@ -398,7 +433,7 @@ export function Navbar() {
                     setLanguage("tr");
                     handleMenuClose();
                   }}
-                  className="text-xs py-1.5 px-3 h-auto w-auto whitespace-nowrap"
+                  className="w-full text-xs py-1.5 px-3 h-auto"
                 >
                   Türkçe
                 </Button>
@@ -407,27 +442,27 @@ export function Navbar() {
 
             {user ? (
               <div className="flex flex-col gap-1.5 pt-2 border-t border-border w-full items-center">
-                <Link href="/panel" onClick={handleMenuClose}>
+                <Link href="/panel" onClick={handleMenuClose} className="w-full">
                   <Button
                     variant="ghost"
-                    className="text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto whitespace-nowrap"
+                    className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto text-center"
                   >
                     {t("nav.profile")}
                   </Button>
                 </Link>
                 <Button
                   variant="ghost"
-                  className="text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto whitespace-nowrap"
+                  className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto text-center"
                   onClick={handleSignOut}
                 >
                   {t("nav.logout")}
                 </Button>
               </div>
             ) : (
-              <Link href="/login" onClick={handleMenuClose} className="w-auto">
+              <Link href="/login" onClick={handleMenuClose} className="w-full">
                 <Button
                   variant="ghost"
-                  className="text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 border-t border-border mt-1.5 h-auto whitespace-nowrap"
+                  className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 border-t border-border mt-1.5 h-auto text-center"
                 >
                   {t("nav.login")}
                 </Button>

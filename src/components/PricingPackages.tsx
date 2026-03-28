@@ -309,7 +309,7 @@ function RegularPackageCard({
         <button
           onClick={() => onCheckout(pkg)}
           disabled={isLoading || loadingId !== null}
-          className="w-full bg-[#1a1a1a] border-2 border-[#6366f1] text-white font-bold py-2.5 px-5 rounded-xl hover:bg-gradient-to-r hover:from-[#6366f1] hover:to-[#a855f7] hover:border-transparent transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+          className="w-full bg-gradient-to-r from-[#6366f1] to-[#a855f7] border border-transparent text-white font-bold py-2.5 px-5 rounded-xl hover:opacity-90 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
         >
           {isLoading ? (
             <>

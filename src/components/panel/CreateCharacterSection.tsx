@@ -43,6 +43,7 @@ type Gender = "male" | "female" | "";
 
 interface CharacterFormData {
   name: string;
+  ownerName: string;
   profession: string;
   age: string;
   gender: Gender;
@@ -71,8 +72,18 @@ const VALID_SPEECH_LENGTHS: SpeechLength[] = ["short", "medium", "long"];
 const VALID_SPEECH_TONES: SpeechTone[] = ["formal", "informal", "funny", "harsh"];
 
 function safeCharacterType(val: unknown): CharacterType {
-  if (typeof val === "string" && VALID_CHARACTER_TYPES.includes(val as CharacterType)) {
-    return val as CharacterType;
+  if (typeof val === "string") {
+    const normalized = val.trim().toLowerCase();
+
+    if (VALID_CHARACTER_TYPES.includes(normalized as CharacterType)) {
+      return normalized as CharacterType;
+    }
+
+    // Backward compatibility for previously persisted translated labels
+    if (normalized === "insan") return "human";
+    if (normalized === "yapay zeka") return "ai";
+    if (normalized === "hayvan") return "animal";
+    if (normalized === "fantezi") return "fantasy";
   }
   return "ai";
 }
@@ -92,12 +103,19 @@ function safeSpeechTone(val: unknown): SpeechTone {
 }
 
 function safeGender(val: unknown): Gender {
-  if (val === "male" || val === "female") return val;
+  if (typeof val === "string") {
+    const normalized = val.trim().toLowerCase();
+    if (normalized === "male" || normalized === "female") return normalized;
+    // Backward compatibility for previously persisted translated labels
+    if (normalized === "erkek") return "male";
+    if (normalized === "kadin" || normalized === "kadın") return "female";
+  }
   return "";
 }
 
 const DEFAULT_FORM: CharacterFormData = {
   name: "",
+  ownerName: "",
   profession: "",
   age: "",
   gender: "",
@@ -185,6 +203,7 @@ export function CreateCharacterSection() {
           const fd = existingSession.form_data as Partial<CharacterFormData>;
           setCharacterData({
             name: fd.name || "",
+            ownerName: fd.ownerName || "",
             profession: fd.profession || "",
             age: fd.age || "",
             gender: safeGender(fd.gender),
@@ -627,6 +646,7 @@ export function CreateCharacterSection() {
       const characterDataToSave = {
         creator_id: user.id,
         name: characterData.name,
+        character_creator: characterData.ownerName || null,
         occupation_en: characterData.profession,
         occupation_tr: characterData.profession,
         description_en: optimizedPrompt || simplePrompt,
@@ -882,23 +902,6 @@ export function CreateCharacterSection() {
                 className="bg-[#2a2a2a] border-white/[0.08] text-white"
                 rows={3}
               />
-              <Button
-                onClick={handleOptimizePrompt}
-                disabled={isOptimizing || !simplePrompt.trim() || isHelperAIDisabled}
-                className="mt-2 bg-gradient-to-r from-[#6366f1] to-[#a855f7]"
-              >
-                {isOptimizing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {language === "tr" ? "Optimize Ediliyor..." : "Optimizing..."}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {language === "tr" ? "AI ile Optimize Et" : "Optimize with AI"}
-                  </>
-                )}
-              </Button>
             </div>
 
             {/* Optimized Prompt Display */}
@@ -921,6 +924,18 @@ export function CreateCharacterSection() {
                   value={characterData.name}
                   onChange={(e) => updateField("name", e.target.value)}
                   placeholder={language === "tr" ? "Karakter adı" : "Character name"}
+                  className="bg-[#2a2a2a] border-white/[0.08] text-white"
+                />
+              </div>
+
+              <div>
+                <Label className="text-white mb-2 block">
+                  {language === "tr" ? "Karakter Oluşturucu" : "Character Creator"}
+                </Label>
+                <Input
+                  value={characterData.ownerName}
+                  onChange={(e) => updateField("ownerName", e.target.value)}
+                  placeholder="Character Creator"
                   className="bg-[#2a2a2a] border-white/[0.08] text-white"
                 />
               </div>

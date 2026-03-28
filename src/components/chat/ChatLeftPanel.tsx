@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, Star, Users, ArrowLeft } from "lucide-react";
+import { Clock, Star, Users, ArrowLeft, X } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,7 @@ interface ChatLeftPanelProps {
   currentConversationId: string | null;
   onConversationSelect: (conversationId: string) => void;
   isGuest?: boolean;
+  onClose?: () => void;
 }
 
 export function ChatLeftPanel({
@@ -38,12 +39,15 @@ export function ChatLeftPanel({
   currentConversationId,
   onConversationSelect,
   isGuest = false,
+  onClose,
 }: ChatLeftPanelProps) {
   const { language } = useLanguage();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"recent" | "favorites" | "characters">("recent");
   const [favoriteCharacters, setFavoriteCharacters] = useState<Character[]>([]);
   const [isLoadingFavorites, setIsLoadingFavorites] = useState(false);
+  const [userCharacters, setUserCharacters] = useState<Character[]>([]);
+  const [isLoadingUserCharacters, setIsLoadingUserCharacters] = useState(false);
 
   const tabs = [
     { id: "recent" as const, label: language === "tr" ? "Son Konuşmalar" : "Recent Conversations", icon: Clock },
@@ -55,6 +59,9 @@ export function ChatLeftPanel({
   useEffect(() => {
     if (activeTab === "favorites" && !isGuest) {
       loadFavoriteCharacters();
+    }
+    if (activeTab === "characters" && !isGuest) {
+      loadUserCharacters();
     }
   }, [activeTab, isGuest]);
 
@@ -88,6 +95,35 @@ export function ChatLeftPanel({
       console.error("Error loading favorite characters:", error);
     } finally {
       setIsLoadingFavorites(false);
+    }
+  };
+
+  const loadUserCharacters = async () => {
+    setIsLoadingUserCharacters(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setUserCharacters([]);
+        return;
+      }
+
+      const { data: characters, error } = await supabase
+        .from("characters")
+        .select("id, name, occupation_en, occupation_tr, image_url")
+        .eq("creator_id", user.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setUserCharacters(characters ?? []);
+    } catch (error) {
+      console.error("Error loading user's characters:", error);
+      setUserCharacters([]);
+    } finally {
+      setIsLoadingUserCharacters(false);
     }
   };
 
@@ -132,6 +168,15 @@ export function ChatLeftPanel({
           <h2 className="text-lg font-bold text-white">
             {language === "tr" ? "Sohbetler" : "Chats"}
           </h2>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="ml-auto flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] transition-colors"
+              aria-label={language === "tr" ? "Paneli kapat" : "Close panel"}
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -286,18 +331,67 @@ export function ChatLeftPanel({
 
           {/* Characters Tab */}
           {activeTab === "characters" && (
-            <div className="text-center py-8 px-4">
-              <Users className="w-12 h-12 mx-auto mb-3 text-[#666666]" />
-              <p className="text-sm text-[#666666]">
-                {isGuest
-                  ? (language === "tr"
-                      ? "Karakter oluşturmak için giriş yapın"
-                      : "Sign in to create characters")
-                  : (language === "tr"
-                      ? "Henüz karakter yok"
-                      : "No characters yet")}
-              </p>
-            </div>
+            <>
+              {isGuest ? (
+                <div className="text-center py-8 px-4">
+                  <Users className="w-12 h-12 mx-auto mb-3 text-[#666666]" />
+                  <p className="text-sm text-[#666666]">
+                    {language === "tr"
+                      ? "Karakterlerinizi görmek için giriş yapın"
+                      : "Sign in to view your characters"}
+                  </p>
+                </div>
+              ) : isLoadingUserCharacters ? (
+                <div className="text-center py-8 px-4">
+                  <p className="text-sm text-[#666666]">
+                    {language === "tr" ? "Yükleniyor..." : "Loading..."}
+                  </p>
+                </div>
+              ) : userCharacters.length === 0 ? (
+                <div className="text-center py-8 px-4">
+                  <Users className="w-12 h-12 mx-auto mb-3 text-[#666666]" />
+                  <p className="text-sm text-[#666666]">
+                    {language === "tr" ? "Henüz karakter oluşturmadınız" : "You haven't created any characters yet"}
+                  </p>
+                </div>
+              ) : (
+                userCharacters.map((character) => {
+                  const occupation = language === "tr" ? character.occupation_tr : character.occupation_en;
+                  return (
+                    <button
+                      key={character.id}
+                      onClick={() => handleCharacterClick(character.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-3 rounded-lg transition-smooth text-left",
+                        "hover:bg-white/[0.02] border border-transparent"
+                      )}
+                    >
+                      {/* Avatar */}
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                        <Image
+                          src={character.image_url}
+                          alt={character.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-white truncate">
+                          {character.name}
+                        </h3>
+                        {occupation && (
+                          <p className="text-xs text-[#999999] truncate">
+                            {occupation}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </>
           )}
         </div>
       </ScrollArea>

@@ -49,14 +49,45 @@ export default function ChatPage() {
       if (user) {
         const { data: latestConversation, error: conversationError } = await supabase
           .from("conversations")
-          .select("character_id")
+          .select("character_id,last_message_at,created_at")
           .eq("user_id", user.id)
-          .order("last_message_at", { ascending: false })
+          .order("last_message_at", { ascending: false, nullsFirst: false })
+          .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (!conversationError && latestConversation?.character_id) {
           router.replace(`/chat/${latestConversation.character_id}`);
+          return;
+        }
+
+        // No previous conversation: open a direct chat route anyway.
+        // Prefer the user's own latest character; fall back to any latest published character.
+        const { data: ownCharacter } = await supabase
+          .from("characters")
+          .select("id")
+          .eq("creator_id", user.id)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (ownCharacter?.id) {
+          router.replace(`/chat/${ownCharacter.id}`);
+          return;
+        }
+
+        const { data: fallbackCharacter } = await supabase
+          .from("characters")
+          .select("id")
+          .eq("is_published", true)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (fallbackCharacter?.id) {
+          router.replace(`/chat/${fallbackCharacter.id}`);
           return;
         }
       }

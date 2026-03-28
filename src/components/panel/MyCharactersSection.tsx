@@ -4,10 +4,20 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Edit, Trash2, MessageSquare, Eye, Sparkles } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  MessageSquare,
+  Eye,
+  Sparkles,
+  Heart,
+  Star,
+  Search,
+} from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -28,6 +38,7 @@ interface Character {
   is_published: boolean;
   is_anime: boolean;
   likes_count: number;
+  favorites_count: number;
   chat_count: number;
   created_at: string;
   character_type: CharacterType;
@@ -73,17 +84,10 @@ export function MyCharactersSection() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(false);
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchMyCharacters = useCallback(async (userId: string) => {
     setLoading(true);
-    const timeoutId = window.setTimeout(() => {
-      setLoading(false);
-      toast.error(
-        language === "tr"
-          ? "Karakterler yüklenirken zaman aşımı oluştu"
-          : "Loading characters timed out"
-      );
-    }, 12000);
 
     try {
       const { data, error } = await supabase
@@ -101,7 +105,6 @@ export function MyCharactersSection() {
         language === "tr" ? "Karakterler yüklenemedi" : "Failed to load characters"
       );
     } finally {
-      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [language]);
@@ -116,11 +119,15 @@ export function MyCharactersSection() {
     }
   }, [user?.id, fetchMyCharacters]);
 
+  useEffect(() => {
+    setActivePanel(null);
+  }, [language]);
+
   // Listen for live sync events from edit/develop panels
   useEffect(() => {
     const handleCharacterUpdated = (event: Event) => {
       const e = event as CustomEvent;
-      const updated = e.detail?.character as EditableCharacter | undefined;
+      const updated = e.detail?.character as Partial<EditableCharacter & { is_published: boolean }> | undefined;
       if (!updated) return;
 
       setCharacters((prev) =>
@@ -128,19 +135,23 @@ export function MyCharactersSection() {
           if (c.id !== updated.id) return c;
           return {
             ...c,
-            name: updated.name,
-            occupation_en: updated.occupation_en,
-            occupation_tr: updated.occupation_tr,
-            image_url: updated.image_url,
-            character_type: updated.character_type,
-            is_anime: updated.character_type === "anime",
-            description_en: updated.description_en,
-            description_tr: updated.description_tr,
-            character_instructions: updated.character_instructions,
-            system_message: updated.system_message,
-            speech_length: updated.speech_length,
-            speech_tone: updated.speech_tone,
-            emoji_usage: updated.emoji_usage,
+            name: updated.name ?? c.name,
+            occupation_en: updated.occupation_en ?? c.occupation_en,
+            occupation_tr: updated.occupation_tr ?? c.occupation_tr,
+            image_url: updated.image_url ?? c.image_url,
+            character_type: updated.character_type ?? c.character_type,
+            is_anime: updated.character_type
+              ? updated.character_type === "anime"
+              : c.is_anime,
+            description_en: updated.description_en ?? c.description_en,
+            description_tr: updated.description_tr ?? c.description_tr,
+            character_instructions:
+              updated.character_instructions ?? c.character_instructions,
+            system_message: updated.system_message ?? c.system_message,
+            speech_length: updated.speech_length ?? c.speech_length,
+            speech_tone: updated.speech_tone ?? c.speech_tone,
+            emoji_usage: updated.emoji_usage ?? c.emoji_usage,
+            is_published: updated.is_published ?? c.is_published,
           };
         })
       );
@@ -259,6 +270,21 @@ export function MyCharactersSection() {
     setActivePanel(null);
   };
 
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredCharacters = characters.filter((character) => {
+    if (!normalizedSearch) return true;
+
+    const haystack = [
+      character.name,
+      character.occupation_en ?? "",
+      character.occupation_tr ?? "",
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(normalizedSearch);
+  });
+
   if (loading) {
     return (
       <Card className="bg-[#1a1a1a] border-white/[0.08] p-8">
@@ -290,8 +316,29 @@ export function MyCharactersSection() {
         </div>
       ) : (
         <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#999999]" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={
+                language === "tr"
+                  ? "İsim veya mesleğe göre ara..."
+                  : "Search by name or occupation..."
+              }
+              className="pl-10 bg-[#2a2a2a] border-white/[0.08] text-white placeholder:text-[#999999]"
+            />
+          </div>
+
+          {filteredCharacters.length === 0 ? (
+            <div className="text-center py-8 text-[#999999]">
+              {language === "tr"
+                ? "Aramanızla eşleşen karakter bulunamadı"
+                : "No characters match your search"}
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {characters.map((character) => {
+            {filteredCharacters.map((character) => {
               const occupation =
                 language === "tr" ? character.occupation_tr : character.occupation_en;
               const isEditOpen =
@@ -307,7 +354,7 @@ export function MyCharactersSection() {
                       (isEditOpen || isDevelopOpen) && "ring-2 ring-[#6366f1]"
                     )}
                   >
-                    <div className="relative aspect-square">
+                    <div className="relative aspect-[10/7]">
                       <Image
                         src={character.image_url}
                         alt={character.name}
@@ -337,18 +384,47 @@ export function MyCharactersSection() {
                     </div>
 
                     <div className="p-4 space-y-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-white">{character.name}</h3>
+                      <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-lg font-bold text-white line-clamp-1">
+                            {character.name}
+                          </h3>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm">
+                              <Heart
+                                className="w-3.5 h-3.5"
+                                style={{ fill: "#ef4444", color: "#ef4444" }}
+                              />
+                              <span className="text-[11px] text-white font-medium">
+                                {character.likes_count ?? 0}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm">
+                              <Star
+                                className="w-3.5 h-3.5"
+                                style={{ fill: "#facc15", color: "#facc15" }}
+                              />
+                              <span className="text-[11px] text-white font-medium">
+                                {character.favorites_count ?? 0}
+                              </span>
+                            </div>
+                            <div
+                              className="flex items-center gap-1 px-2 py-1 rounded-full"
+                              style={{ background: "linear-gradient(135deg, #34d399, #10b981)" }}
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 text-white" />
+                              <span className="text-[11px] text-white font-medium">
+                                {character.chat_count ?? 0}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                         {occupation && (
                           <p className="text-sm text-[#999999]">{occupation}</p>
                         )}
                       </div>
 
-                      <div className="flex gap-4 text-xs text-[#999999]">
-                        <span>❤️ {character.likes_count}</span>
-                        <span>💬 {character.chat_count}</span>
-                      </div>
-
+                      {/* Action buttons */}
                       <div className="grid grid-cols-2 gap-2">
                         <Button
                           onClick={() =>
@@ -417,6 +493,7 @@ export function MyCharactersSection() {
                   {/* Inline Edit Panel */}
                   {isEditOpen && (
                     <CharacterEditPanel
+                      key={`edit-${character.id}-${language}`}
                       character={toEditableCharacter(character)}
                       onClose={() => setActivePanel(null)}
                       onSaved={handleEditSaved}
@@ -426,6 +503,7 @@ export function MyCharactersSection() {
                   {/* Inline Develop Panel */}
                   {isDevelopOpen && (
                     <CharacterDevelopPanel
+                      key={`develop-${character.id}-${language}`}
                       characterId={character.id}
                       characterName={character.name}
                       onClose={() => setActivePanel(null)}
@@ -441,6 +519,7 @@ export function MyCharactersSection() {
               );
             })}
           </div>
+          )}
         </div>
       )}
     </Card>

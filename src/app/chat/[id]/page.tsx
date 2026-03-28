@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ChatLeftPanel } from "@/components/chat/ChatLeftPanel";
 import { ChatMiddlePanel } from "@/components/chat/ChatMiddlePanel";
 import { ChatRightPanel } from "@/components/chat/ChatRightPanel";
@@ -65,12 +65,14 @@ const CHAT_CHARACTER_CACHE_PREFIX = "chat_character_cache_";
 export default function ChatPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { language } = useLanguage();
   const isMobile = useIsMobile();
   const isTabletOrMobile = useIsTabletOrMobile();
 
   const characterId = params?.id as string;
+  const requestedConversationId = searchParams.get("conversationId");
 
   const [character, setCharacter] = useState<Character | null>(() => {
     if (typeof window === "undefined") return null;
@@ -106,7 +108,7 @@ export default function ChatPage() {
     } else {
       loadGuestConversations();
     }
-  }, [user, characterId]);
+  }, [user, characterId, requestedConversationId]);
 
   useEffect(() => {
     const verifyShareClick = async () => {
@@ -256,17 +258,17 @@ export default function ChatPage() {
     if (!currentConversationId || !user) return;
 
     try {
-      const { data } = await supabase
-        .from("conversations")
-        .select("message_count")
-        .eq("id", currentConversationId)
-        .maybeSingle();
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("conversation_id", currentConversationId)
+        .eq("sender_type", "user");
 
-      const count = data?.message_count || 0;
-      setMessageCount(count);
+      const resolvedCount = count || 0;
+      setMessageCount(resolvedCount);
 
       window.dispatchEvent(
-        new CustomEvent("messageCountUpdated", { detail: { characterId, count } })
+        new CustomEvent("messageCountUpdated", { detail: { characterId, count: resolvedCount } })
       );
     } catch (error) {
       console.error("Error loading message count:", error);
@@ -277,10 +279,11 @@ export default function ChatPage() {
     if (!currentConversationId) return;
 
     try {
-      const stored = localStorage.getItem(GUEST_CONVERSATIONS_KEY);
-      const guestConvs = stored ? JSON.parse(stored) : [];
-      const conv = guestConvs.find((c: any) => c.id === currentConversationId);
-      const count = conv?.message_count || 0;
+      const messagesStored = localStorage.getItem(GUEST_MESSAGES_KEY);
+      const guestMessages = messagesStored ? JSON.parse(messagesStored) : [];
+      const count = guestMessages.filter(
+        (m: Message) => m.conversation_id === currentConversationId && m.sender_type === "user"
+      ).length;
       setMessageCount(count);
 
       window.dispatchEvent(
@@ -421,6 +424,16 @@ export default function ChatPage() {
 
         setConversations(conversationsWithCharacters as Conversation[]);
 
+        if (requestedConversationId) {
+          const requestedConv = data.find(
+            (c) => c.id === requestedConversationId && c.character_id === characterId
+          );
+          if (requestedConv) {
+            setCurrentConversationId(requestedConv.id);
+            return;
+          }
+        }
+
         const existingConv = data.find((c) => c.character_id === characterId);
         if (existingConv) {
           setCurrentConversationId(existingConv.id);
@@ -508,8 +521,6 @@ export default function ChatPage() {
             .from("conversations")
             .update({ message_count: newCount, last_message_at: new Date().toISOString() })
             .eq("id", currentConversationId);
-
-          setMessageCount(newCount);
         }
       } else {
         // For guest users
@@ -539,9 +550,6 @@ export default function ChatPage() {
           });
 
           localStorage.setItem(GUEST_CONVERSATIONS_KEY, JSON.stringify(updatedConvs));
-          const updatedConv = updatedConvs.find((c: any) => c.id === currentConversationId);
-          const newCount = updatedConv?.message_count || 0;
-          setMessageCount(newCount);
         } catch (error) {
           console.error("Error updating guest message count:", error);
         }
@@ -661,7 +669,7 @@ export default function ChatPage() {
           setMessages((prev) => [...prev, aiMessage]);
         }
 
-        // Update conversation message count (+2 for user + ai)
+        // Keep conversation message_count for legacy stats (+2 for user + ai).
         const { data: conversation } = await supabase
           .from("conversations")
           .select("message_count")
@@ -672,9 +680,12 @@ export default function ChatPage() {
           .from("conversations")
           .update({ message_count: newCount, last_message_at: new Date().toISOString() })
           .eq("id", currentConversationId);
-        setMessageCount(newCount);
+
+        // Card/chat SMS count should track only user-sent messages (+1 per user SMS).
+        const nextUserCount = messageCount + 1;
+        setMessageCount(nextUserCount);
         window.dispatchEvent(
-          new CustomEvent("messageCountUpdated", { detail: { characterId, count: newCount } })
+          new CustomEvent("messageCountUpdated", { detail: { characterId, count: nextUserCount } })
         );
       } catch (error) {
         console.error("Error generating AI response:", error);
@@ -917,6 +928,7 @@ export default function ChatPage() {
                 setShowLeftPanel(false);
               }}
               isGuest={isGuest}
+              onClose={() => setShowLeftPanel(false)}
             />
           </div>
         </div>

@@ -31,6 +31,7 @@ interface Character {
   likes_count: number;
   favorites_count: number;
   chat_count?: number;
+  is_published?: boolean;
 }
 
 interface CharacterCardProps {
@@ -44,27 +45,48 @@ interface CharacterCardProps {
 // Helper function to get message count from database or localStorage
 async function getMessageCount(characterId: string, userId: string | null): Promise<number> {
   if (userId) {
-    // Authenticated user - get from database
+    // Authenticated user - count only user-sent messages in this character conversation.
     try {
-      const { data } = await supabase
+      const { data: conversations, error: conversationsError } = await supabase
         .from("conversations")
-        .select("message_count")
+        .select("id")
         .eq("user_id", userId)
-        .eq("character_id", characterId)
-        .maybeSingle();
+        .eq("character_id", characterId);
 
-      return data?.message_count || 0;
+      if (conversationsError) throw conversationsError;
+      if (!conversations || conversations.length === 0) return 0;
+
+      const conversationIds = conversations.map((conversation) => conversation.id);
+
+      const { count, error: messagesCountError } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .in("conversation_id", conversationIds)
+        .eq("sender_type", "user");
+
+      if (messagesCountError) throw messagesCountError;
+      return count || 0;
     } catch (error) {
       console.error("Error fetching message count:", error);
       return 0;
     }
   } else {
-    // Guest user - get from localStorage
+    // Guest user - count only user-sent messages in localStorage.
     try {
-      const stored = localStorage.getItem("guest_conversations");
-      const guestConvs = stored ? JSON.parse(stored) : [];
-      const conv = guestConvs.find((c: any) => c.character_id === characterId);
-      return conv?.message_count || 0;
+      const guestConvsStored = localStorage.getItem("guest_conversations");
+      const guestConvs = guestConvsStored ? JSON.parse(guestConvsStored) : [];
+      const characterConversationIds = guestConvs
+        .filter((c: any) => c.character_id === characterId && c.id)
+        .map((c: any) => c.id);
+      if (characterConversationIds.length === 0) return 0;
+
+      const guestMessagesStored = localStorage.getItem("guest_messages");
+      const guestMessages = guestMessagesStored ? JSON.parse(guestMessagesStored) : [];
+      return guestMessages.filter(
+        (m: any) =>
+          m.sender_type === "user" &&
+          characterConversationIds.includes(m.conversation_id)
+      ).length;
     } catch (error) {
       console.error("Error loading guest message count:", error);
       return 0;
@@ -104,6 +126,11 @@ export function CharacterCard({
 
   const occupation = language === "tr" ? character.occupation_tr : character.occupation_en;
   const characterTypeLabel = getCharacterTypeLabel(character.character_type, language);
+  const isPublished = Boolean(character.is_published);
+  const useAiButtonBackground = isPublished && messageCount === 0;
+  const useFavoriteButtonBackground = isPublished && favoritesCount === 0;
+  const useLikeButtonBackground = isPublished && likesCount === 0;
+  const useSmsButtonBackground = isPublished && messageCount === 0;
 
   // Load message count on mount and when user changes
   useEffect(() => {
@@ -256,7 +283,10 @@ export function CharacterCard({
       if (newFavoritedState) {
         const { error } = await supabase
           .from("favorites")
-          .insert({ user_id: user.id, character_id: character.id });
+          .upsert(
+            { user_id: user.id, character_id: character.id },
+            { onConflict: "user_id,character_id", ignoreDuplicates: true }
+          );
 
         if (error) throw error;
       } else {
@@ -269,29 +299,38 @@ export function CharacterCard({
         if (error) throw error;
       }
 
+      // Always resolve from DB to avoid drift (e.g. duplicate insert race).
+      const { count: dbFavoritesCount, error: favoritesCountError } = await supabase
+        .from("favorites")
+        .select("*", { count: "exact", head: true })
+        .eq("character_id", character.id);
+
+      if (favoritesCountError) throw favoritesCountError;
+
+      const resolvedCount = dbFavoritesCount ?? Math.max(0, newCount);
+
       // Persist the computed count to the characters table
       const { data: charData, error: countError } = await supabase
         .from("characters")
-        .update({ favorites_count: newCount })
+        .update({ favorites_count: resolvedCount })
         .select("favorites_count")
         .eq("id", character.id)
         .maybeSingle();
 
       if (countError) throw countError;
 
-      if (charData) {
-        setFavoritesCount(charData.favorites_count);
-        
-        // Broadcast update to chat page
-        window.dispatchEvent(new CustomEvent('interactionUpdated', {
-          detail: {
-            characterId: character.id,
-            type: 'favorite',
-            isActive: newFavoritedState,
-            count: charData.favorites_count
-          }
-        }));
-      }
+      const finalCount = charData?.favorites_count ?? resolvedCount;
+      setFavoritesCount(finalCount);
+
+      // Broadcast update to chat page
+      window.dispatchEvent(new CustomEvent('interactionUpdated', {
+        detail: {
+          characterId: character.id,
+          type: 'favorite',
+          isActive: newFavoritedState,
+          count: finalCount
+        }
+      }));
 
       onFavoriteToggle?.();
     } catch (error) {
@@ -355,10 +394,17 @@ export function CharacterCard({
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold text-xs backdrop-blur-sm",
                 "transition-all duration-300",
-                character.character_type === "human"
+                useAiButtonBackground
+                  ? "text-white"
+                  : character.character_type === "human"
                   ? "bg-orange-500/80 text-white"
                   : "bg-purple-600/80 text-white"
               )}
+              style={
+                useAiButtonBackground
+                  ? { background: "linear-gradient(to right, rgb(147 51 234), rgb(37 99 235))" }
+                  : undefined
+              }
             >
               {character.character_type === "human" ? (
                 <>
@@ -376,8 +422,14 @@ export function CharacterCard({
             {/* Top-Right: Favorite Icon */}
             <button
               onClick={handleFavorite}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm flex-shrink-0"
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-sm flex-shrink-0",
+                !useFavoriteButtonBackground && "bg-black/40"
+              )}
               style={{
+                ...(useFavoriteButtonBackground
+                  ? { background: "linear-gradient(to right, rgb(147 51 234), rgb(37 99 235))" }
+                  : {}),
                 animation: favoriteAnimating ? "scaleAnimation 0.6s ease-in-out" : "none"
               }}
             >
@@ -413,8 +465,14 @@ export function CharacterCard({
               {/* Bottom-Left: Like Icon */}
               <button
                 onClick={handleLike}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm flex-shrink-0"
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-sm flex-shrink-0",
+                  !useLikeButtonBackground && "bg-black/40"
+                )}
                 style={{
+                  ...(useLikeButtonBackground
+                    ? { background: "linear-gradient(to right, rgb(147 51 234), rgb(37 99 235))" }
+                    : {}),
                   animation: likeAnimating ? "scaleAnimation 0.6s ease-in-out" : "none"
                 }}
               >
@@ -447,11 +505,12 @@ export function CharacterCard({
               <div 
                 className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full flex-shrink-0"
                 style={{
-                  // Green badge to match the requested "white-green" appearance
-                  background: "linear-gradient(135deg, #34d399, #10b981)",
+                  background: useSmsButtonBackground
+                    ? "linear-gradient(to right, rgb(147 51 234), rgb(37 99 235))"
+                    : "linear-gradient(135deg, #34d399, #10b981)",
                 }}
               >
-                <MessageSquare className="w-4 h-4 text-white" />
+                <MessageSquare className="w-4 h-4 text-green-400" />
                 <span className="text-xs text-white font-medium">{messageCount}</span>
               </div>
             </div>
