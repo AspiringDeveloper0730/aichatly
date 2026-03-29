@@ -34,7 +34,7 @@ interface ChatLeftPanelProps {
   onClose?: () => void;
 }
 
-export function ChatLeftPanel({
+export const ChatLeftPanel = React.memo(function ChatLeftPanel({
   conversations,
   currentConversationId,
   onConversationSelect,
@@ -397,4 +397,4 @@ export function ChatLeftPanel({
       </ScrollArea>
     </div>
   );
-}
+});

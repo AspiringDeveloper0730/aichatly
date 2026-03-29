@@ -87,25 +87,11 @@ export async function generateMetadata({
       character.description_tr ||
       `Chat with ${character.name} on AiChatly`;
 
-    // Use the character's actual image for social previews (OG/Twitter scrapers)
-    // instead of relying on the dynamic `opengraph-image` renderer.
-    let characterImageUrl: string | undefined;
-    if (character.image_url) {
-      const raw = character.image_url;
-      if (raw.startsWith("http://") || raw.startsWith("https://")) {
-        characterImageUrl = raw;
-      } else if (raw.startsWith("//")) {
-        characterImageUrl = `https:${raw}`;
-      } else {
-        try {
-          characterImageUrl = new URL(raw, baseUrl).toString();
-        } catch {
-          // If the DB has an unexpected value, fall back to the dynamic OG renderer.
-          characterImageUrl = undefined;
-        }
-      }
-    }
-    const socialImageUrl = characterImageUrl || ogImageUrl;
+    // Use a self-hosted OG image generator endpoint that embeds the character
+    // image directly into a social card. This is more reliable than pointing
+    // social platform scrapers at an external CDN URL which they may fail to
+    // fetch or cache incorrectly.
+    const socialImageUrl = `${baseUrl}/api/og/${characterId}`;
 
     return {
       title: `${character.name}${occupation ? ` - ${occupation}` : ""} | AiChatly`,
@@ -119,7 +105,7 @@ export async function generateMetadata({
           {
             url: socialImageUrl,
             width: 1200,
-            height: 1200,
+            height: 630,
             alt: character.name,
           },
         ],

@@ -76,7 +76,17 @@ export function Navbar() {
     }
   }, [signOut, handleMenuClose, router, language]);
 
+  const handlePrefetch = useCallback((href: string) => {
+    try {
+      router.prefetch(href);
+    } catch {
+      // ignore
+    }
+  }, [router]);
+
   const handleChatMenuClick = useCallback(async () => {
+    // Prefetch generic chat route assets to smooth navigation
+    handlePrefetch("/chat");
     if (!user) {
       router.push("/chat");
       handleMenuClose();
@@ -108,7 +118,7 @@ export function Navbar() {
     } finally {
       handleMenuClose();
     }
-  }, [user, router, handleMenuClose]);
+  }, [user, router, handleMenuClose, handlePrefetch]);
 
   const menuItems = [
     { label: t("nav.home"), href: "/" },
@@ -121,7 +131,7 @@ export function Navbar() {
 
   if (!mounted) {
     return (
-      <nav className="fixed top-0 left-0 right-0 z-[1000] w-full h-[72px] bg-[#0A0A1F] border-b border-border shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 z-[1000] w-full h-[72px] bg-[#0A0A1F] shadow-sm">
         <div className="max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center flex-shrink-0">
             <Image
@@ -131,6 +141,7 @@ export function Navbar() {
               height={NAV_LOGO.height}
               className={NAV_LOGO.className}
               priority
+              onLoadingComplete={() => handlePrefetch("/")}
             />
           </Link>
         </div>
@@ -139,7 +150,7 @@ export function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-[1000] w-full h-[72px] bg-[#0A0A1F] border-b border-border shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-[1000] w-full h-[72px] bg-[#0A0A1F] shadow-sm">
       {!isMobile && !isTablet && (
         <div className="max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center flex-shrink-0">
@@ -161,12 +172,13 @@ export function Navbar() {
                     variant="ghost"
                     size="sm"
                     onClick={item.onClick}
+                    onMouseEnter={() => handlePrefetch("/chat")}
                     className="text-base font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 whitespace-nowrap"
                   >
                     {item.label}
                   </Button>
                 ) : (
-                  <Link href={item.href}>
+                  <Link href={item.href} onMouseEnter={() => handlePrefetch(item.href)}>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -179,7 +191,7 @@ export function Navbar() {
               </div>
             ))}
 
-            <Link href="/panel?section=create-character">
+            <Link href="/panel?section=create-character" onMouseEnter={() => handlePrefetch("/panel?section=create-character")}>
               <button className="create-character-btn whitespace-nowrap">
                 {t("sidebar.createCharacter")}
               </button>
@@ -192,13 +204,13 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="gap-2 text-base font-medium text-foreground hover:bg-transparent hover:text-foreground active:bg-transparent active:text-foreground transition-all duration-300 whitespace-nowrap"
+                  className="gap-2 text-base font-medium text-foreground hover:bg-transparent hover:text-foreground active:bg-transparent active:text-foreground transition-all duration-300 whitespace-nowrap outline-none ring-0 focus-visible:ring-0"
                 >
                   <Globe className="w-4 h-4" />
                   <span>{t("sidebar.language")}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover border-border">
+              <DropdownMenuContent align="end" className="bg-popover border-0">
                 <DropdownMenuItem
                   onClick={() => setLanguage("en")}
                   className={cn(language === "en" && "bg-accent text-accent-foreground")}
@@ -225,9 +237,9 @@ export function Navbar() {
                     {t("nav.profile")}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-popover border-border">
+                <DropdownMenuContent align="end" className="bg-popover border-0">
                   <DropdownMenuItem asChild>
-                    <Link href="/panel">{t("nav.profile")}</Link>
+                    <Link href="/panel" onMouseEnter={() => handlePrefetch("/panel")}>{t("nav.profile")}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut}>
                     {t("nav.logout")}
@@ -235,7 +247,7 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href="/login">
+              <Link href="/login" onMouseEnter={() => handlePrefetch("/login")}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -279,7 +291,7 @@ export function Navbar() {
       )}
 
       {isMobile && mobileMenuOpen && (
-        <div className="fixed top-[72px] right-0 w-[36%] max-w-[280px] h-[calc(100vh-72px)] bg-[#0A0A1F] z-[2000] shadow-2xl overflow-y-auto border-l border-border">
+        <div className="fixed top-[72px] right-0 w-[36%] max-w-[280px] h-[calc(100vh-72px)] bg-[#0A0A1F] z-[2000] shadow-2xl overflow-y-auto">
           <div className="px-3 py-4 flex flex-col gap-2.5 items-center">
             {menuItems.map((item) => (
               <div key={item.href} className="w-full">
@@ -287,7 +299,7 @@ export function Navbar() {
                   <Button
                     variant="ghost"
                     onClick={(e) => {
-                      item.onClick(e);
+                      item.onClick();
                       handleMenuClose();
                     }}
                     className="w-full text-sm font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-3 justify-center"
@@ -295,7 +307,7 @@ export function Navbar() {
                     {item.label}
                   </Button>
                 ) : (
-                  <Link href={item.href} onClick={handleMenuClose}>
+                  <Link href={item.href} onClick={handleMenuClose} onMouseEnter={() => handlePrefetch(item.href)}>
                     <Button
                       variant="ghost"
                       className="w-full text-sm font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-3 justify-center"
@@ -307,13 +319,13 @@ export function Navbar() {
               </div>
             ))}
 
-            <Link href="/panel?section=create-character" onClick={handleMenuClose} className="w-full">
+            <Link href="/panel?section=create-character" onClick={handleMenuClose} onMouseEnter={() => handlePrefetch("/panel?section=create-character")} className="w-full">
               <button className="create-character-btn w-full py-3 text-sm text-center">
                 {t("sidebar.createCharacter")}
               </button>
             </Link>
 
-            <div className="flex flex-col gap-2 pt-3 border-t border-border w-full">
+            <div className="flex flex-col gap-2 pt-3 w-full">
               <p className="text-xs font-medium text-muted-foreground text-center">
                 {t("sidebar.language")}
               </p>
@@ -325,7 +337,7 @@ export function Navbar() {
                     setLanguage("en");
                     handleMenuClose();
                   }}
-                  className="w-full text-sm py-2"
+                  className="w-full text-sm py-2 border-0"
                 >
                   English
                 </Button>
@@ -336,7 +348,7 @@ export function Navbar() {
                     setLanguage("tr");
                     handleMenuClose();
                   }}
-                  className="w-full text-sm py-2"
+                  className="w-full text-sm py-2 border-0"
                 >
                   Türkçe
                 </Button>
@@ -344,8 +356,8 @@ export function Navbar() {
             </div>
 
             {user ? (
-              <div className="flex flex-col gap-2 pt-3 border-t border-border w-full">
-                <Link href="/panel" onClick={handleMenuClose}>
+              <div className="flex flex-col gap-2 pt-3 w-full">
+              <Link href="/panel" onClick={handleMenuClose} onMouseEnter={() => handlePrefetch("/panel")}>
                   <Button
                     variant="ghost"
                     className="w-full text-sm font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-3"
@@ -362,10 +374,10 @@ export function Navbar() {
                 </Button>
               </div>
             ) : (
-              <Link href="/login" onClick={handleMenuClose} className="w-full">
+              <Link href="/login" onClick={handleMenuClose} onMouseEnter={() => handlePrefetch("/login")} className="w-full">
                 <Button
                   variant="ghost"
-                  className="w-full text-sm font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-3 border-t border-border mt-2"
+                  className="w-full text-sm font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-3 mt-2"
                 >
                   {t("nav.login")}
                 </Button>
@@ -376,7 +388,7 @@ export function Navbar() {
       )}
 
       {isTablet && mobileMenuOpen && (
-        <div className="fixed top-[72px] right-0 w-[min(78vw,320px)] h-[calc(100vh-72px)] bg-[#0A0A1F] z-[2000] shadow-2xl overflow-y-auto overflow-x-hidden border-l border-border">
+        <div className="fixed top-[72px] right-0 w-[min(78vw,320px)] h-[calc(100vh-72px)] bg-[#0A0A1F] z-[2000] shadow-2xl overflow-y-auto overflow-x-hidden">
           <div className="px-2 py-3 flex flex-col gap-1.5 items-center">
             {menuItems.map((item) => (
               <div key={item.href} className="w-full">
@@ -384,7 +396,7 @@ export function Navbar() {
                   <Button
                     variant="ghost"
                     onClick={(e) => {
-                      item.onClick(e);
+                      item.onClick();
                       handleMenuClose();
                     }}
                     className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto text-center"
@@ -392,7 +404,7 @@ export function Navbar() {
                     {item.label}
                   </Button>
                 ) : (
-                  <Link href={item.href} onClick={handleMenuClose}>
+                  <Link href={item.href} onClick={handleMenuClose} onMouseEnter={() => handlePrefetch(item.href)}>
                     <Button
                       variant="ghost"
                       className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto text-center"
@@ -404,13 +416,13 @@ export function Navbar() {
               </div>
             ))}
 
-            <Link href="/panel?section=create-character" onClick={handleMenuClose} className="w-full">
+            <Link href="/panel?section=create-character" onClick={handleMenuClose} onMouseEnter={() => handlePrefetch("/panel?section=create-character")} className="w-full">
               <button className="create-character-btn w-full py-2 px-3 text-xs text-center">
                 {t("sidebar.createCharacter")}
               </button>
             </Link>
 
-            <div className="flex flex-col gap-1.5 pt-2 border-t border-border w-full">
+            <div className="flex flex-col gap-1.5 pt-2 w-full">
               <p className="text-[10px] font-medium text-muted-foreground text-center">
                 {t("sidebar.language")}
               </p>
@@ -422,7 +434,7 @@ export function Navbar() {
                     setLanguage("en");
                     handleMenuClose();
                   }}
-                  className="w-full text-xs py-1.5 px-3 h-auto"
+                  className="w-full text-xs py-1.5 px-3 h-auto border-0"
                 >
                   English
                 </Button>
@@ -433,7 +445,7 @@ export function Navbar() {
                     setLanguage("tr");
                     handleMenuClose();
                   }}
-                  className="w-full text-xs py-1.5 px-3 h-auto"
+                  className="w-full text-xs py-1.5 px-3 h-auto border-0"
                 >
                   Türkçe
                 </Button>
@@ -441,8 +453,8 @@ export function Navbar() {
             </div>
 
             {user ? (
-              <div className="flex flex-col gap-1.5 pt-2 border-t border-border w-full items-center">
-                <Link href="/panel" onClick={handleMenuClose} className="w-full">
+              <div className="flex flex-col gap-1.5 pt-2 w-full items-center">
+                <Link href="/panel" onClick={handleMenuClose} onMouseEnter={() => handlePrefetch("/panel")} className="w-full">
                   <Button
                     variant="ghost"
                     className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 h-auto text-center"
@@ -459,10 +471,10 @@ export function Navbar() {
                 </Button>
               </div>
             ) : (
-              <Link href="/login" onClick={handleMenuClose} className="w-full">
+              <Link href="/login" onClick={handleMenuClose} onMouseEnter={() => handlePrefetch("/login")} className="w-full">
                 <Button
                   variant="ghost"
-                  className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 border-t border-border mt-1.5 h-auto text-center"
+                  className="w-full text-xs font-medium text-foreground hover:text-foreground hover:bg-accent transition-all duration-300 py-2 px-3 mt-1.5 h-auto text-center"
                 >
                   {t("nav.login")}
                 </Button>

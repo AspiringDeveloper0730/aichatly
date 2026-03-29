@@ -345,9 +345,9 @@ export function CharacterCard({
     <>
       <div 
         className={cn(
-          "group relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-[#1a1a1a] border border-white/[0.08] shadow-lg cursor-pointer",
+          "group relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-[#1a1a1a] shadow-lg cursor-pointer",
           "transition-all duration-300 ease-out",
-          isHovered && "shadow-[0_0_30px_rgba(139,92,246,0.3),0_0_60px_rgba(168,85,247,0.2)] border-purple-500/30"
+          isHovered && "shadow-[0_0_30px_rgba(139,92,246,0.3),0_0_60px_rgba(168,85,247,0.2)]"
         )}
         style={{ minHeight: "400px" }}
         onMouseEnter={() => setIsHovered(true)}

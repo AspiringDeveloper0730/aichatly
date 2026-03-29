@@ -3,9 +3,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ChatLeftPanel } from "@/components/chat/ChatLeftPanel";
-import { ChatMiddlePanel } from "@/components/chat/ChatMiddlePanel";
-import { ChatRightPanel } from "@/components/chat/ChatRightPanel";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile, useIsTabletOrMobile } from "@/hooks/use-mobile";
@@ -21,6 +19,44 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+// Dynamically import heavy panels to reduce initial JS during navigation
+const ChatLeftPanel = dynamic(
+	() => import("@/components/chat/ChatLeftPanel").then((m) => m.ChatLeftPanel),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="w-full h-full flex items-center justify-center text-[#999]">
+				Loading...
+			</div>
+		),
+	}
+);
+
+const ChatRightPanel = dynamic(
+	() => import("@/components/chat/ChatRightPanel").then((m) => m.ChatRightPanel),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="w-full h-full flex items-center justify-center text-[#999]">
+				Loading...
+			</div>
+		),
+	}
+);
+
+// Middle panel drives the core chat UX; still load it statically if it's lighter.
+const ChatMiddlePanel = dynamic(
+	() => import("@/components/chat/ChatMiddlePanel").then((m) => m.ChatMiddlePanel),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="flex-1 flex items-center justify-center text-[#999]">
+				Loading chat...
+			</div>
+		),
+	}
+);
 
 interface Character {
   id: string;

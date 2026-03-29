@@ -37,7 +37,7 @@ interface ChatRightPanelProps {
   onClose?: () => void;
 }
 
-export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRightPanelProps) {
+export const ChatRightPanel = React.memo(function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRightPanelProps) {
   const { language } = useLanguage();
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
@@ -330,14 +330,10 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
       return;
     }
 
-    // Always build share URL from the public site base. Using current href can produce
-    // localhost/private URLs that are not reachable from social apps/devices.
+    // Always build share URL from the public site base.
     const siteBase =
       process.env.NEXT_PUBLIC_SITE_URL ||
       (typeof window !== "undefined" ? window.location.origin : "");
-    // Social bots should receive exactly the chat URL (no query params).
-    // Since we can't track "click-through" anymore without a token in the URL,
-    // we record the share reward immediately after `prepare` succeeds.
     const shareUrl = new URL(`/chat/${character.id}`, siteBase).toString();
 
     try {
@@ -354,27 +350,62 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
     } catch (e) {
       console.error("Error verifying share reward:", e);
     }
+
     const shareTitle = `${character.name}${occupation ? ` - ${occupation}` : ""}`;
     const shareDescription = description || `Chat with ${character.name} on AiChatly`;
     const shareText = `${shareTitle}\n${shareDescription}`;
-    
+
+    // Try Web Share API first (works great on mobile for WhatsApp, Telegram, etc.)
+    // This shares the actual character image as a file attachment.
+    if (navigator.share && (platform === "whatsapp" || platform === "telegram")) {
+      try {
+        // Download the character image as a blob for file sharing
+        const imageUrl = character.image_url;
+        if (imageUrl) {
+          const imgResponse = await fetch(imageUrl);
+          const blob = await imgResponse.blob();
+          const ext = blob.type.includes("png") ? "png" : "jpg";
+          const file = new File([blob], `${character.name}.${ext}`, { type: blob.type });
+
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: shareTitle,
+              text: `${shareDescription}\n${shareUrl}`,
+              files: [file],
+            });
+            setShowShareMenu(false);
+            toast.success(
+              language === "tr"
+                ? "Paylaşım penceresi açıldı. Paylaşım ödülü alındı."
+                : "Share window opened. Reward recorded."
+            );
+            return;
+          }
+        }
+      } catch (err: any) {
+        // User cancelled or Web Share not supported for files — fall through to URL method
+        if (err?.name === "AbortError") {
+          setShowShareMenu(false);
+          return;
+        }
+        console.warn("Web Share API with file failed, falling back to URL:", err);
+      }
+    }
+
+    // Fallback: URL-based sharing for desktop or when Web Share isn't available
     let url = "";
 
     switch (platform) {
       case "facebook":
-        // Facebook uses Open Graph meta tags automatically
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
         break;
       case "twitter":
-        // Twitter uses Twitter Card meta tags automatically
         url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
         break;
       case "whatsapp":
-        // Put URL first so chat apps detect it as a clickable link more reliably.
         url = `https://wa.me/?text=${encodeURIComponent(`${shareUrl}\n${shareText}`)}`;
         break;
       case "telegram":
-        // Telegram uses Open Graph meta tags for preview
         url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
         break;
     }
@@ -632,4 +663,4 @@ export function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRig
       </ScrollArea>
     </div>
   );
-}
+});
