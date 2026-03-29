@@ -104,20 +104,20 @@ export async function GET(
         {/* Character image section */}
         <div
           style={{
-            width: "400px",
+            width: "500px",
             height: "630px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "40px",
+            padding: "30px",
             flexShrink: 0,
           }}
         >
           {imageUrl ? (
             <img
               src={imageUrl}
-              width={320}
-              height={320}
+              width={440}
+              height={440}
               style={{
                 borderRadius: "24px",
                 objectFit: "cover",
@@ -128,8 +128,8 @@ export async function GET(
           ) : (
             <div
               style={{
-                width: "320px",
-                height: "320px",
+                width: "440px",
+                height: "440px",
                 borderRadius: "24px",
                 background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
                 display: "flex",
