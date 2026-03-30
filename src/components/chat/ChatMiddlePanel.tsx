@@ -248,7 +248,10 @@ export function ChatMiddlePanel({
               : "Character and chats deleted successfully"
           );
 
-          router.push("/");
+          // Stay on chat page - dispatch event to create new conversation
+          window.dispatchEvent(new CustomEvent("conversationDeleted", {
+            detail: { conversationId }
+          }));
         } else if (isGuest) {
           // Guest user - clean up localStorage
           const GUEST_MESSAGES_KEY = "guest_messages";
@@ -286,7 +289,10 @@ export function ChatMiddlePanel({
             console.error("Error deleting guest character data:", error);
           }
 
-          router.push("/");
+          // Stay on chat page - dispatch event to create new conversation
+          window.dispatchEvent(new CustomEvent("conversationDeleted", {
+            detail: { conversationId }
+          }));
         }
       }
     } catch (error) {
