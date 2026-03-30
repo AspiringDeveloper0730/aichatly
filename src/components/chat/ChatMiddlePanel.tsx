@@ -239,42 +239,104 @@ export function ChatMiddlePanel({
           }
         }
       } else if (deleteAction === "character") {
-        // Delete character
+        // Delete character - remove all conversations and messages for this character, then clean up
         if (user) {
-          // Check if user is the creator
+          // 1. Find all conversations for this user + character
+          const { data: userConversations } = await supabase
+            .from("conversations")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("character_id", character.id);
+
+          if (userConversations && userConversations.length > 0) {
+            const convIds = userConversations.map((c: any) => c.id);
+
+            // 2. Delete all messages from those conversations
+            const { error: msgError } = await supabase
+              .from("messages")
+              .delete()
+              .in("conversation_id", convIds);
+
+            if (msgError) {
+              console.error("Error deleting messages:", msgError);
+            }
+
+            // 3. Delete the conversations
+            const { error: convError } = await supabase
+              .from("conversations")
+              .delete()
+              .in("id", convIds);
+
+            if (convError) {
+              console.error("Error deleting conversations:", convError);
+            }
+          }
+
+          // 4. Remove favorites and likes
+          await supabase
+            .from("favorites")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("character_id", character.id);
+
+          await supabase
+            .from("likes")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("character_id", character.id);
+
+          // 5. If user created this character, soft delete it
           if (character.creator_id === user.id) {
-            // User created this character - soft delete
             const { error } = await supabase
               .from("characters")
               .update({ deleted_at: new Date().toISOString() })
               .eq("id", character.id);
 
             if (error) throw error;
+          }
+
+          toast.success(
+            language === "tr"
+              ? "Karakter ve sohbetler başarıyla silindi"
+              : "Character and chats deleted successfully"
+          );
+
+          router.push("/");
+        } else if (isGuest) {
+          // Guest user - clean up localStorage
+          const GUEST_MESSAGES_KEY = "guest_messages";
+          const GUEST_CONVERSATIONS_KEY = "guest_conversations";
+
+          try {
+            const storedMessages = localStorage.getItem(GUEST_MESSAGES_KEY);
+            if (storedMessages) {
+              const allMessages = JSON.parse(storedMessages);
+              const filteredMessages = allMessages.filter(
+                (m: Message) => {
+                  const conv = JSON.parse(localStorage.getItem(GUEST_CONVERSATIONS_KEY) || "[]")
+                    .find((c: any) => c.id === m.conversation_id && c.character_id === character.id);
+                  return !conv;
+                }
+              );
+              localStorage.setItem(GUEST_MESSAGES_KEY, JSON.stringify(filteredMessages));
+            }
+
+            const storedConvs = localStorage.getItem(GUEST_CONVERSATIONS_KEY);
+            if (storedConvs) {
+              const allConvs = JSON.parse(storedConvs);
+              const filteredConvs = allConvs.filter(
+                (c: any) => c.character_id !== character.id
+              );
+              localStorage.setItem(GUEST_CONVERSATIONS_KEY, JSON.stringify(filteredConvs));
+            }
 
             toast.success(
               language === "tr"
-                ? "Karakter başarıyla silindi"
-                : "Character deleted successfully"
+                ? "Karakter ve sohbetler başarıyla silindi"
+                : "Character and chats deleted successfully"
             );
-          } else {
-            // System character - remove from user's favorites and likes
-            await supabase
-              .from("favorites")
-              .delete()
-              .eq("user_id", user.id)
-              .eq("character_id", character.id);
-
-            await supabase
-              .from("likes")
-              .delete()
-              .eq("user_id", user.id)
-              .eq("character_id", character.id);
-
-            toast.success(
-              language === "tr"
-                ? "Karakter listenizden kaldırıldı"
-                : "Character removed from your list"
-            );
+          } catch (error) {
+            console.error("Error deleting guest character data:", error);
           }
 
           router.push("/");
