@@ -161,24 +161,15 @@ export function ChatMiddlePanel({
         }
 
         if (user) {
-          // Delete messages first
-          const { error: messagesError } = await supabase
-            .from("messages")
-            .delete()
-            .eq("conversation_id", conversationId);
+          // Use server-side API to bypass RLS
+          const res = await fetch("/api/chat/delete-conversation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.id, conversationId }),
+          });
 
-          if (messagesError) {
-            throw messagesError;
-          }
-
-          // Delete conversation
-          const { error: conversationError } = await supabase
-            .from("conversations")
-            .delete()
-            .eq("id", conversationId);
-
-          if (conversationError) {
-            throw conversationError;
+          if (!res.ok) {
+            throw new Error("Failed to delete conversation");
           }
 
           toast.success(
@@ -188,8 +179,8 @@ export function ChatMiddlePanel({
           );
 
           // Dispatch event to notify parent to refresh and create new conversation
-          window.dispatchEvent(new CustomEvent("conversationDeleted", { 
-            detail: { conversationId } 
+          window.dispatchEvent(new CustomEvent("conversationDeleted", {
+            detail: { conversationId }
           }));
 
           // Stay on chat page - parent will handle creating new conversation
@@ -239,60 +230,16 @@ export function ChatMiddlePanel({
           }
         }
       } else if (deleteAction === "character") {
-        // Delete character - remove all conversations and messages for this character, then clean up
+        // Delete character - use server-side API to bypass RLS
         if (user) {
-          // 1. Find all conversations for this user + character
-          const { data: userConversations } = await supabase
-            .from("conversations")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("character_id", character.id);
+          const res = await fetch("/api/chat/delete-character", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.id, characterId: character.id }),
+          });
 
-          if (userConversations && userConversations.length > 0) {
-            const convIds = userConversations.map((c: any) => c.id);
-
-            // 2. Delete all messages from those conversations
-            const { error: msgError } = await supabase
-              .from("messages")
-              .delete()
-              .in("conversation_id", convIds);
-
-            if (msgError) {
-              console.error("Error deleting messages:", msgError);
-            }
-
-            // 3. Delete the conversations
-            const { error: convError } = await supabase
-              .from("conversations")
-              .delete()
-              .in("id", convIds);
-
-            if (convError) {
-              console.error("Error deleting conversations:", convError);
-            }
-          }
-
-          // 4. Remove favorites and likes
-          await supabase
-            .from("favorites")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("character_id", character.id);
-
-          await supabase
-            .from("likes")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("character_id", character.id);
-
-          // 5. If user created this character, soft delete it
-          if (character.creator_id === user.id) {
-            const { error } = await supabase
-              .from("characters")
-              .update({ deleted_at: new Date().toISOString() })
-              .eq("id", character.id);
-
-            if (error) throw error;
+          if (!res.ok) {
+            throw new Error("Failed to delete character");
           }
 
           toast.success(
