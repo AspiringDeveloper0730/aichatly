@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://aichatly.app"),
   openGraph: {
     type: "website",
-    url: "https://aichatly.app",
+    url: "https://aichatly.vercel.app",
     title: "AiChatly – AI Character Platform",
     description: "Create your own character, chat with AI and have enjoyable experiences.",
     siteName: "AiChatly",
