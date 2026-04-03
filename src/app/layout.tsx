@@ -22,10 +22,10 @@ export const metadata: Metadata = {
   description: "Create your own character, chat with AI and have enjoyable experiences.",
   keywords: ["AI", "chat", "character", "AI platform", "virtual characters"],
   authors: [{ name: "AiChatly" }],
-  metadataBase: new URL("https://aichatly.vercel.app"),
+  metadataBase: new URL("https://aichatly.vercel.app/"),
   openGraph: {
     type: "website",
-    url: "https://aichatly.vercel.app",
+    url: "https://aichatly.vercel.app/",
     title: "AiChatly – AI Character Platform",
     description: "Create your own character, chat with AI and have enjoyable experiences.",
     siteName: "AiChatly",
