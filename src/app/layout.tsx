@@ -71,7 +71,7 @@ export default function RootLayout({
         <meta property="og:description" content="Create your own character, chat with AI and have enjoyable experiences." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://aichatly.vercel.app/" />
-        <meta property="og:image" content="https://yourdomain.com/og-image.png" />
+        <meta property="og:image" content="https://aichatly.vercel.app/Logo.png" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
