@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import React from "react";
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -9,7 +10,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id: characterId } = await params;
+  const url = new URL(req.url);
+  const conversationId = url.searchParams.get("conversationId");
 
   // Fetch character from Supabase
   const supabaseUrl =
@@ -22,11 +25,13 @@ export async function GET(
     "";
 
   let character: any = null;
+  let messages: any[] = [];
 
   if (supabaseUrl && serviceRoleKey) {
     try {
-      const res = await fetch(
-        `${supabaseUrl}/rest/v1/characters?id=eq.${id}&select=name,occupation_en,occupation_tr,description_en,description_tr,image_url`,
+      // Fetch character
+      const charRes = await fetch(
+        `${supabaseUrl}/rest/v1/characters?id=eq.${characterId}&select=name,occupation_en,occupation_tr,description_en,description_tr,image_url`,
         {
           headers: {
             apikey: serviceRoleKey,
@@ -34,10 +39,25 @@ export async function GET(
           },
         }
       );
-      const data = await res.json();
-      character = Array.isArray(data) && data.length > 0 ? data[0] : null;
+      const charData = await charRes.json();
+      character = Array.isArray(charData) && charData.length > 0 ? charData[0] : null;
+
+      // Fetch messages if conversationId provided
+      if (conversationId) {
+        const msgRes = await fetch(
+          `${supabaseUrl}/rest/v1/messages?conversation_id=eq.${conversationId}&select=content,sender_type,created_at&order=created_at.asc&limit=5`,
+          {
+            headers: {
+              apikey: serviceRoleKey,
+              Authorization: `Bearer ${serviceRoleKey}`,
+            },
+          }
+        );
+        const msgData = await msgRes.json();
+        messages = Array.isArray(msgData) ? msgData : [];
+      }
     } catch (e) {
-      console.error("[OG] fetch error:", e);
+      console.error("[OG Chat] fetch error:", e);
     }
   }
 
@@ -45,12 +65,11 @@ export async function GET(
     return new Response("Character not found", { status: 404 });
   }
 
-  const name = character.name || "Character";
+  const name = character.name || "AI Character";
   const occupation =
     character.occupation_en || character.occupation_tr || "";
   const description =
-    character.description_en ||
-    character.description_tr ||
+    character.description_en || character.description_tr ||
     "Chat with AI characters on AiChatly";
 
   // Resolve image URL
@@ -63,6 +82,15 @@ export async function GET(
       imageUrl = `https:${raw}`;
     }
   }
+
+  // Prepare chat preview text
+  const chatPreview = messages.length > 0
+    ? messages.slice(0, 3).map((msg, index) => {
+        const sender = msg.sender_type === "user" ? "You" : name;
+        const content = msg.content.length > 50 ? msg.content.substring(0, 50) + "..." : msg.content;
+        return `${sender}: ${content}`;
+      }).join("\n")
+    : "Start a conversation with this AI character";
 
   return new ImageResponse(
     (
@@ -167,7 +195,7 @@ export async function GET(
               display: "flex",
             }}
           >
-            {name}
+            Chat with {name}
           </div>
           {occupation && (
             <div
@@ -181,19 +209,28 @@ export async function GET(
               {occupation}
             </div>
           )}
+
+          {/* Chat Preview */}
           <div
             style={{
-              fontSize: "22px",
-              color: "#94a3b8",
-              lineHeight: 1.4,
-              display: "flex",
-              maxHeight: "120px",
-              overflow: "hidden",
+              background: "rgba(255, 255, 255, 0.1)",
+              borderRadius: "12px",
+              padding: "20px",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              margin: "16px 0",
             }}
           >
-            {description.length > 150
-              ? description.substring(0, 150) + "..."
-              : description}
+            <div
+              style={{
+                fontSize: "18px",
+                color: "white",
+                lineHeight: 1.4,
+                whiteSpace: "pre-wrap",
+                display: "flex",
+              }}
+            >
+              {chatPreview}
+            </div>
           </div>
 
           {/* AiChatly branding */}

@@ -35,9 +35,31 @@ interface ChatRightPanelProps {
   character: Character;
   messageCount?: number;
   onClose?: () => void;
+  conversationId?: string | null;
+  chatPreviewText?: string; // New prop: last chat snippet for share messages
 }
 
-export const ChatRightPanel = React.memo(function ChatRightPanel({ character, messageCount = 0, onClose }: ChatRightPanelProps) {
+// Reusable popup helper function for social share windows
+function openCenteredPopup(url: string, title = "Share", width = 700, height = 560) {
+  const dualScreenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+  const dualScreenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+  const innerWidth = window.innerWidth || document.documentElement.clientWidth || screen.width;
+  const innerHeight = window.innerHeight || document.documentElement.clientHeight || screen.height;
+
+  const left = dualScreenLeft + (innerWidth - width) / 2;
+  const top = dualScreenTop + (innerHeight - height) / 2;
+
+  const features = `scrollbars=yes,resizable=yes,toolbar=no,location=no,width=${width},height=${height},top=${top},left=${left}`;
+  const popup = window.open(url, title, features);
+
+  if (popup && typeof popup.focus === "function") {
+    popup.focus();
+  }
+
+  return popup;
+}
+
+export const ChatRightPanel = React.memo(function ChatRightPanel({ character, messageCount = 0, onClose, conversationId, chatPreviewText = "" }: ChatRightPanelProps) {
   const { language } = useLanguage();
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
@@ -309,6 +331,57 @@ export const ChatRightPanel = React.memo(function ChatRightPanel({ character, me
       return;
     }
 
+    // Build share URL synchronously first to avoid async delays.
+    const siteBase =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+    const shareUrl = new URL(`/chat/${character.id}`, siteBase).toString();
+    const chatUrl = conversationId ? `${shareUrl}?conversationId=${conversationId}` : shareUrl;
+
+    const shareTitle = `Chat with ${character.name}${occupation ? ` - ${occupation}` : ""}`;
+    const shareDescription = description || `Chat with ${character.name} on AiChatly`;
+    const textSnippet = chatPreviewText || shareDescription;
+
+    // Generate share text differently for WhatsApp to avoid duplicate lines and format cleanly
+    // WhatsApp gets direct snippet + URL without "Chat:" prefix for cleaner appearance
+    const whatsappText = platform === "whatsapp"
+      ? `${textSnippet}\n\n${chatUrl}`
+      : `Chat: ${textSnippet}\n\n${chatUrl}`;
+
+    const shareText = whatsappText;
+
+    let url = "";
+
+    switch (platform) {
+      case "facebook":
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(chatUrl)}`;
+        break;
+      case "twitter":
+        url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(chatUrl)}&text=${encodeURIComponent(shareText)}`;
+        break;
+      case "whatsapp":
+        // Clean WhatsApp share: direct snippet + URL, no extra "Chat:" prefix
+        url = `https://web.whatsapp.com/send?text=${encodeURIComponent(whatsappText)}`;
+        break;
+      case "telegram":
+        url = `https://t.me/share/url?url=${encodeURIComponent(chatUrl)}&text=${encodeURIComponent(textSnippet)}`;
+        break;
+    }
+
+    if (!url) return;
+
+    // Open popup immediately with the final URL to ensure first-click success.
+    const popup = openCenteredPopup(url, `Share on ${platform}`, 600, 600);
+    if (!popup || popup.closed) {
+      toast.error(
+        language === "tr"
+          ? "Tarayıcı paylaşım penceresini engelledi. Lütfen izin verin veya ayarları kontrol edin."
+          : "Popup blocked by browser. Please allow popups and try again."
+      );
+      return;
+    }
+
+    // Now handle async reward tracking after popup is open.
     const prepareRes = await fetch("/api/rewards/character-share", {
       method: "POST",
       headers: {
@@ -323,18 +396,13 @@ export const ChatRightPanel = React.memo(function ChatRightPanel({ character, me
 
     const prepareData = await prepareRes.json();
     if (!prepareRes.ok || !prepareData?.success || !prepareData?.shareId) {
+      // Popup is already open, so don't close it; just show error.
       toast.error(
         prepareData?.error ||
           (language === "tr" ? "Paylaşım hazırlanamadı" : "Share could not be prepared")
       );
       return;
     }
-
-    // Always build share URL from the public site base.
-    const siteBase =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      (typeof window !== "undefined" ? window.location.origin : "");
-    const shareUrl = new URL(`/chat/${character.id}`, siteBase).toString();
 
     try {
       await fetch("/api/rewards/character-share", {
@@ -351,74 +419,12 @@ export const ChatRightPanel = React.memo(function ChatRightPanel({ character, me
       console.error("Error verifying share reward:", e);
     }
 
-    const shareTitle = `${character.name}${occupation ? ` - ${occupation}` : ""}`;
-    const shareDescription = description || `Chat with ${character.name} on AiChatly`;
-    const shareText = `${shareTitle}\n${shareDescription}`;
-
-    // Try Web Share API first (works great on mobile for WhatsApp, Telegram, etc.)
-    // This shares the actual character image as a file attachment.
-    if (navigator.share && (platform === "whatsapp" || platform === "telegram")) {
-      try {
-        // Download the character image as a blob for file sharing
-        const imageUrl = character.image_url;
-        if (imageUrl) {
-          const imgResponse = await fetch(imageUrl);
-          const blob = await imgResponse.blob();
-          const ext = blob.type.includes("png") ? "png" : "jpg";
-          const file = new File([blob], `${character.name}.${ext}`, { type: blob.type });
-
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              title: shareTitle,
-              text: `${shareDescription}\n${shareUrl}`,
-              files: [file],
-            });
-            setShowShareMenu(false);
-            toast.success(
-              language === "tr"
-                ? "Paylaşım penceresi açıldı. Paylaşım ödülü alındı."
-                : "Share window opened. Reward recorded."
-            );
-            return;
-          }
-        }
-      } catch (err: any) {
-        // User cancelled or Web Share not supported for files — fall through to URL method
-        if (err?.name === "AbortError") {
-          setShowShareMenu(false);
-          return;
-        }
-        console.warn("Web Share API with file failed, falling back to URL:", err);
-      }
-    }
-
-    // Fallback: URL-based sharing for desktop or when Web Share isn't available
-    let url = "";
-
-    switch (platform) {
-      case "facebook":
-        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-        break;
-      case "twitter":
-        url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-        break;
-      case "whatsapp":
-        url = `https://wa.me/?text=${encodeURIComponent(`${shareUrl}\n${shareText}`)}`;
-        break;
-      case "telegram":
-        url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
-        break;
-    }
-
-    if (url) {
-      window.open(url, "_blank", "width=600,height=400");
-      setShowShareMenu(false);
-      toast.success(
-        language === "tr"
-          ? "Paylaşım penceresi açıldı. Paylaşım ödülü alındı."
-          : "Share window opened. Reward recorded."
-      );
-    }
+    setShowShareMenu(false);
+    toast.success(
+      language === "tr"
+        ? "Paylaşım penceresi açıldı. Paylaşım ödülü alındı."
+        : "Share window opened. Reward recorded."
+    );
   };
 
   return (
@@ -613,7 +619,7 @@ export const ChatRightPanel = React.memo(function ChatRightPanel({ character, me
                 className="w-full border-white/[0.08] text-white hover:bg-white/[0.05]"
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                {language === "tr" ? "Karakteri Paylaş" : "Share Character"}
+                {language === "tr" ? "Sohbeti Paylaş" : "Share Chat"}
               </Button>
 
               {/* Share Menu Dropdown */}

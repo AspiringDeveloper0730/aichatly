@@ -107,17 +107,22 @@ export async function generateMetadata({
     }
     const socialImageUrl = characterImageUrl || ogImageUrl;
 
+    const cardTitle = `${character.name} – AiChatly`;
+    const cardDescription = `Chat with ${character.name}, who ${
+      occupation ? occupation : "offers engaging AI-powered conversations"
+    }`;
+
     return {
-      title: `${character.name}${occupation ? ` - ${occupation}` : ""} | AiChatly`,
+      title: `${character.name} – AiChatly`,
       description: description,
       openGraph: {
-        title: `${character.name}${occupation ? ` - ${occupation}` : ""}`,
-        description: description,
+        title: cardTitle,
+        description: cardDescription,
         url: characterUrl,
         siteName: "AiChatly",
         images: [
           {
-            url: socialImageUrl,
+            url: socialImageUrl || ogImageUrl,
             width: 1200,
             height: 1200,
             alt: character.name,
@@ -128,9 +133,9 @@ export async function generateMetadata({
       },
       twitter: {
         card: "summary_large_image",
-        title: `${character.name}${occupation ? ` - ${occupation}` : ""}`,
-        description: description,
-        images: [socialImageUrl],
+        title: cardTitle,
+        description: cardDescription,
+        images: [socialImageUrl || ogImageUrl],
         creator: "@aichatly",
       },
       alternates: {

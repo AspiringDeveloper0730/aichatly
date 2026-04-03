@@ -146,6 +146,48 @@ export default function ChatPage() {
     }
   }, [user, characterId, requestedConversationId]);
 
+  // Update document metadata for sharing
+  useEffect(() => {
+    if (!character) return;
+
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const chatUrl = `${baseUrl}/chat/${characterId}${currentConversationId ? `?conversationId=${currentConversationId}` : ""}`;
+    const ogImageUrl = `${baseUrl}/api/og/chat/${characterId}${currentConversationId ? `?conversationId=${currentConversationId}` : ""}`;
+
+    // Create persona description for sharing
+    const occupation = character.occupation_en || character.occupation_tr || "";
+    const personaDescription = `Chat with ${character.name}, who ${
+      occupation ? occupation : "offers engaging, expert AI-powered responses"
+    }`;
+
+    // Update title
+    document.title = `Chat with ${character.name} - AiChatly`;
+
+    // Update or create meta tags
+    const updateMeta = (property: string, content: string) => {
+      let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute("property", property);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute("content", content);
+    };
+
+    updateMeta("og:title", `${character.name} – AiChatly`);
+    updateMeta("og:description", personaDescription);
+    updateMeta("og:image", ogImageUrl);
+    updateMeta("og:url", chatUrl);
+    updateMeta("og:type", "website");
+
+    // Twitter cards
+    updateMeta("twitter:card", "summary_large_image");
+    updateMeta("twitter:title", `${character.name} – AiChatly`);
+    updateMeta("twitter:description", personaDescription);
+    updateMeta("twitter:image", ogImageUrl);
+
+  }, [character, messages, currentConversationId, characterId]);
+
   useEffect(() => {
     const verifyShareClick = async () => {
       const url = new URL(window.location.href);
@@ -930,6 +972,19 @@ export default function ChatPage() {
     setShowRightPanel(true);
   };
 
+  // Generate a clean, professional share snippet (no raw chat messages)
+  // Uses persona name + persona summary to create a social-card style text
+  const shareSnippet = (() => {
+    const personaSummary =
+      character?.description_en ||
+      character?.description_tr ||
+      "offers engaging AI-powered conversations";
+
+    const shortSnippet = `Chat with ${character?.name || "this AI character"}, who ${personaSummary}`;
+    return shortSnippet.length > 200 ? shortSnippet.substring(0, 197) + "..." : shortSnippet;
+  })();
+
+
   const handleUpgradeFromPopup = () => {
     setShowLimitPopup(false);
     router.push("/pricing");
@@ -987,7 +1042,12 @@ export default function ChatPage() {
       {/* RIGHT PANEL */}
       {!isTabletOrMobile && (
         <div className="w-[22%] min-w-[300px] max-w-[360px] border-l border-white/[0.08] bg-[#111111]">
-          <ChatRightPanel character={character} messageCount={messageCount} />
+          <ChatRightPanel
+            character={character}
+            messageCount={messageCount}
+            conversationId={currentConversationId}
+            chatPreviewText={shareSnippet}
+          />
         </div>
       )}
 
@@ -1001,6 +1061,7 @@ export default function ChatPage() {
               character={character}
               messageCount={messageCount}
               onClose={() => setShowRightPanel(false)}
+              conversationId={currentConversationId}
             />
           </div>
         </div>
