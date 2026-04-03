@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     siteName: "AiChatly",
     images: [
       {
-        url: "https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png",
+        url: "/Logo.png",
         width: 1200,
         height: 630,
         alt: "AiChatly Logo",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AiChatly – AI Character Platform",
     description: "Create your own character, chat with AI and have enjoyable experiences.",
-    images: ["https://cdn.chat2db-ai.com/app/avatar/custom/9f81c7d6-d54d-4728-9854-ca5acaeeefd7_749150.png"],
+    images: ["/Logo.png"],
   },
   icons: {
     icon: [{ url: "/Logo.png", type: "image/png" }],
