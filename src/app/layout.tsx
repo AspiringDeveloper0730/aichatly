@@ -22,10 +22,10 @@ export const metadata: Metadata = {
   description: "Create your own character, chat with AI and have enjoyable experiences.",
   keywords: ["AI", "chat", "character", "AI platform", "virtual characters"],
   authors: [{ name: "AiChatly" }],
-  metadataBase: new URL("https://aichatly.vercel.app/"),
+  metadataBase: new URL("https://aichatly.vercel.app"),
   openGraph: {
     type: "website",
-    url: "https://aichatly.vercel.app/",
+    url: "https://aichatly.vercel.app",
     title: "AiChatly – AI Character Platform",
     description: "Create your own character, chat with AI and have enjoyable experiences.",
     siteName: "AiChatly",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/Logo.png", type: "image/png" }],
     apple: [
-      { url: "/Logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
   },
 };
@@ -65,19 +65,6 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4F46E5" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
-
-        {/* Open Graph */}
-        <meta property="og:title" content="AiChatly - AI Character Platform" />
-        <meta property="og:description" content="Create your own character, chat with AI and have enjoyable experiences." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://aichatly.vercel.app/" />
-        <meta property="og:image" content="https://aichatly.vercel.app/Logo.png" />
-
-        {/* Twitter */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="AiChatly - AI Character Platform" />
-        <meta name="twitter:description" content="Create your own character, chat with AI and have enjoyable experiences." />
-        <meta name="twitter:image" content="https://aichatly.vercel.app/Logo.png" />
         <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3259084940575407"
