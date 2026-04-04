@@ -17,21 +17,25 @@ const inter = Inter({
   fallback: ["system-ui", "arial"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  "https://aichatly.vercel.app";
+
 export const metadata: Metadata = {
   title: "AiChatly – AI Character Platform",
   description: "Create your own character, chat with AI and have enjoyable experiences.",
   keywords: ["AI", "chat", "character", "AI platform", "virtual characters"],
   authors: [{ name: "AiChatly" }],
-  metadataBase: new URL("https://aichatly.vercel.app"),
+  metadataBase: new URL(siteUrl),
   openGraph: {
     type: "website",
-    url: "https://aichatly.vercel.app",
+    url: siteUrl,
     title: "AiChatly – AI Character Platform",
     description: "Create your own character, chat with AI and have enjoyable experiences.",
     siteName: "AiChatly",
     images: [
       {
-        url: "/logo.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
         alt: "AiChatly Logo",
@@ -42,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AiChatly – AI Character Platform",
     description: "Create your own character, chat with AI and have enjoyable experiences.",
-    images: ["/logo.png"],
+    images: ["/opengraph-image"],
   },
   icons: {
     icon: [{ url: "/logo.png", type: "image/png" }],
