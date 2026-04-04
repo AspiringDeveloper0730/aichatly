@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     siteName: "AiChatly",
     images: [
       {
-        url: "https://aichatly.vercel.app/logo.png",
+        url: "/logo.png",
         width: 1200,
         height: 630,
         alt: "AiChatly Logo",
@@ -42,12 +42,12 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AiChatly – AI Character Platform",
     description: "Create your own character, chat with AI and have enjoyable experiences.",
-    images: ["https://aichatly.vercel.app/logo.png"],
+    images: ["/logo.png"],
   },
   icons: {
-    icon: [{ url: "https://aichatly.vercel.app/logo.png", type: "image/png" }],
+    icon: [{ url: "/logo.png", type: "image/png" }],
     apple: [
-      { url: "https://aichatly.vercel.app/logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/logo.png", sizes: "192x192", type: "image/png" },
     ],
   },
 };

@@ -54,7 +54,6 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    path: '/',
     remotePatterns: [
       {
         hostname: "images.pexels.com",
