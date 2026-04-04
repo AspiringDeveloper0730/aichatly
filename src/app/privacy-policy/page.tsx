@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
     <>
       <Navbar />
       <main className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-16 mt-16">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-4xl font-bold mb-4">PRIVACY POLICY</h1>
             <p className="text-sm text-muted-foreground mb-8">
@@ -144,7 +144,7 @@ export default function PrivacyPolicyPage() {
                 <h2 className="text-2xl font-semibold mb-4">12. Contact Us</h2>
                 <p className="text-white/80 leading-relaxed">
                   For privacy-related questions:<br />
-                  support@aichatly.app (or your official email address that you will create in the future)
+                  info@aichatly.app (or your official email address that you will create in the future)
                 </p>
               </section>
             </div>

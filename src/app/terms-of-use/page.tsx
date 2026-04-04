@@ -13,7 +13,7 @@ export default function TermsOfUsePage() {
     <>
       <Navbar />
       <main className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-16 mt-16">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-4xl font-bold mb-4">TERMS OF USE</h1>
             <p className="text-sm text-muted-foreground mb-8">
@@ -147,7 +147,7 @@ export default function TermsOfUsePage() {
                   For questions regarding the Terms of Use:
                 </p>
                 <ul className="list-none space-y-2 text-white/80 mt-3">
-                  <li>Email: destek@aichatly.app</li>
+                  <li>Email: info@aichatly.app</li>
                   <li>Website: aichatly.app</li>
                 </ul>
               </section>
