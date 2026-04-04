@@ -12,6 +12,10 @@ export default async function Image() {
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://aichatly.vercel.app";
   const logoUrl = `${siteUrl}/logo.png`;
+  const logoRes = await fetch(logoUrl, { cache: "no-store" });
+  const logoArrayBuffer = await logoRes.arrayBuffer();
+  const logoBase64 = Buffer.from(logoArrayBuffer).toString("base64");
+  const logoDataUrl = `data:image/png;base64,${logoBase64}`;
 
   return new ImageResponse(
     (
@@ -37,7 +41,7 @@ export default async function Image() {
           <img
             width={220}
             height={220}
-            src={logoUrl}
+            src={logoDataUrl}
             alt="AiChatly Logo"
             style={{ borderRadius: 24 }}
           />
