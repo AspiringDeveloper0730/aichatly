@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/:path*.(png|jpg|jpeg|gif|webp|svg|ico|css|js|woff2)',
-        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, no-cache' }],
       },
       {
         source: '/:path*.html',
