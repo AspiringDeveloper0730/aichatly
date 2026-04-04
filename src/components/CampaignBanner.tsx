@@ -14,17 +14,17 @@ type BannerItem = {
 
 const BANNERS: BannerItem[] = [
   {
-    image: "/banner_1.jpeg",
+    image: "/banner_11.jpeg",
     title: "Create Your Character",
     subtitle: "Your profession, personality, and story are in your hands",
   },
   {
-    image: "/banner_2.jpeg",
+    image: "/banner_21.jpeg",
     title: "Connect Instantly",
     subtitle: "Realistic conversations, infinite memory",
   },
   {
-    image: "/banner_3.jpeg",
+    image: "/banner_31.jpeg",
     title: "Endless Evolution",
     subtitle: "Let it grow with you, let it evolve with you",
   },

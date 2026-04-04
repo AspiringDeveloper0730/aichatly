@@ -2,7 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_EMAIL = "admin@aichatly.app";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "info@aichatly.app";
+const CONTACT_FROM_EMAIL = process.env.CONTACT_FROM_EMAIL || ADMIN_EMAIL;
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 
 function getSupabaseAdmin() {
   // For inserts that bypass RLS, we need the service role key
@@ -29,6 +31,19 @@ function getSupabaseAdmin() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!ADMIN_EMAIL) {
+      return NextResponse.json(
+        { success: false, error: "ADMIN_EMAIL is not configured." },
+        { status: 500 }
+      );
+    }
+    if (!RESEND_API_KEY) {
+      return NextResponse.json(
+        { success: false, error: "Email service is not configured." },
+        { status: 500 }
+      );
+    }
+
     let body;
     try {
       body = await request.json();
@@ -106,6 +121,72 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json(
         { success: false, error: errorMessage },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const submittedAt = new Date().toISOString();
+      const subject = `New contact form submission${fullName ? ` from ${fullName}` : ""}`;
+      const html = `
+        <div style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; line-height:1.6;">
+          <h2 style="margin:0 0 12px 0;">New Contact Submission</h2>
+          <p style="margin:0 0 8px 0;"><strong>Name:</strong> ${fullName ? String(fullName) : "Anonymous"}</p>
+          <p style="margin:0 0 8px 0;"><strong>Email:</strong> ${email.trim()}</p>
+          <p style="margin:0 0 8px 0;"><strong>Submitted at:</strong> ${submittedAt}</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />
+          <p style="margin:0 0 8px 0;"><strong>Message:</strong></p>
+          <div style="white-space:pre-wrap;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;">${String(
+            message
+          )}</div>
+          <p style="color:#6b7280;font-size:12px;margin-top:16px;">Submission key: ${submissionKey}</p>
+        </div>
+      `;
+      const text = [
+        "New Contact Submission",
+        `Name: ${fullName ? String(fullName) : "Anonymous"}`,
+        `Email: ${email.trim()}`,
+        `Submitted at: ${submittedAt}`,
+        "",
+        "Message:",
+        String(message),
+        "",
+        `Submission key: ${submissionKey}`,
+      ].join("\n");
+
+      const resendResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: CONTACT_FROM_EMAIL,
+          to: [ADMIN_EMAIL],
+          subject,
+          html,
+          text,
+          reply_to: [email.trim()],
+        }),
+      });
+
+      if (!resendResponse.ok) {
+        const errorText = await resendResponse.text().catch(() => "");
+        console.error("[Contact API] Email send failed:", {
+          status: resendResponse.status,
+          body: errorText,
+        });
+        return NextResponse.json(
+          { success: false, error: "Failed to send notification email." },
+          { status: 500 }
+        );
+      }
+    } catch (mailErr: any) {
+      console.error("[Contact API] Unexpected email error:", {
+        message: mailErr?.message,
+      });
+      return NextResponse.json(
+        { success: false, error: "Failed to send notification email." },
         { status: 500 }
       );
     }
